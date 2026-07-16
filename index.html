@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wylth — Marketing Task Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<style>
+:root {
+  --teal: #00BAB2;
+  --teal-dim: rgba(0,186,178,0.10);
+  --teal-line: rgba(0,186,178,0.28);
+  --teal-dark: #009d96;
+  --charcoal: #30302F;
+  --beige: #FDF6F0;
+  --cream: #FFFCF9;
+  --rust: #C2472E;
+  --rust-dim: rgba(194,71,46,0.08);
+  --amber: #C98A2C;
+  --amber-dim: rgba(201,138,44,0.10);
+  --ink: #30302F;
+  --ink-80: rgba(48,48,47,0.80);
+  --ink-65: rgba(48,48,47,0.65);
+  --ink-42: rgba(48,48,47,0.42);
+  --ink-13: rgba(48,48,47,0.10);
+  --ink-06: rgba(48,48,47,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.10);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--beige); color: var(--charcoal); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.5; }
+::selection { background: var(--teal-dim); }
+button { cursor: pointer; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+.app { max-width: 1440px; margin: 0 auto; padding: 24px 32px 80px; }
+
+/* Header */
+.header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--ink-13); margin-bottom: 20px; flex-wrap: wrap; }
+.brand .eyebrow { font-size: 9px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+.brand h1 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 30px; letter-spacing: -0.01em; line-height: 1.1; }
+.brand h1 em { font-style: italic; color: var(--teal); }
+.brand .sub { font-size: 12px; color: var(--ink-42); margin-top: 5px; }
+
+/* Stats */
+.stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.stat { padding: 10px 16px; border-radius: var(--radius-md); border: 1px solid var(--ink-13); background: #fff; min-width: 90px; text-align: center; }
+.stat .num { font-size: 20px; font-weight: 700; line-height: 1.2; }
+.stat .label { font-size: 9px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-42); }
+.stat.teal { border-color: var(--teal-line); background: var(--teal-dim); }
+.stat.teal .num { color: var(--teal); }
+.stat.amber { border-color: rgba(201,138,44,0.3); background: var(--amber-dim); }
+.stat.amber .num { color: var(--amber); }
+.stat.rust { border-color: rgba(194,71,46,0.3); background: var(--rust-dim); }
+.stat.rust .num { color: var(--rust); }
+
+/* Week Nav */
+.week-nav { display: flex; align-items: center; justify-content: center; gap: 12px; background: #fff; border: 1px solid var(--ink-13); border-radius: var(--radius-md); padding: 10px 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.week-nav .week-label { font-family: 'Fraunces', serif; font-style: italic; font-size: 15px; color: var(--teal); min-width: 220px; text-align: center; }
+.week-nav .badge { font-size: 9px; font-weight: 600; color: var(--teal); background: var(--teal-dim); border: 1px solid var(--teal-line); padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
+
+/* Toolbar */
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+.toolbar input[type=text], .toolbar select {
+  font-size: 12px; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--ink-13); background: #fff; color: var(--charcoal); outline: none; transition: border-color 0.15s;
+}
+.toolbar input[type=text] { min-width: 200px; }
+.toolbar input:focus, .toolbar select:focus { border-color: var(--teal); }
+.chip { font-size: 10.5px; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--ink-13); background: #fff; color: var(--ink-65); user-select: none; transition: 0.15s; cursor: pointer; }
+.chip:hover { border-color: var(--teal-line); }
+.chip.active { background: var(--charcoal); color: #fff; border-color: var(--charcoal); }
+.spacer { flex: 1; }
+.view-toggle { display: flex; border: 1px solid var(--ink-13); border-radius: var(--radius-sm); overflow: hidden; }
+.view-toggle button { border: none; background: #fff; font-size: 11px; font-weight: 500; padding: 9px 14px; color: var(--ink-65); transition: 0.15s; }
+.view-toggle button.active { background: var(--charcoal); color: #fff; }
+.btn { font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; border-radius: var(--radius-sm); padding: 10px 16px; border: 1px solid transparent; white-space: nowrap; transition: 0.15s; }
+.btn-primary { background: var(--teal); color: #fff; }
+.btn-primary:hover { background: var(--teal-dark); }
+.btn-ghost { background: #fff; border: 1px solid var(--ink-13); color: var(--charcoal); }
+.btn-ghost:hover { border-color: var(--charcoal); }
+.btn-danger { background: var(--rust); color: #fff; }
+.btn-danger:hover { background: #a93c27; }
+.btn-sm { font-size: 10.5px; padding: 7px 12px; }
+.btn-text { background: none; border: none; color: var(--ink-42); font-size: 11px; text-decoration: underline; cursor: pointer; }
+
+/* Board */
+.board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 16px; }
+.col { background: rgba(255,255,255,0.55); border: 1px solid var(--ink-13); border-radius: var(--radius-md); min-width: 260px; max-width: 260px; display: flex; flex-direction: column; max-height: 72vh; transition: 0.15s; }
+.col.dragover { border-color: var(--teal); background: var(--teal-dim); }
+.col-head { padding: 12px 14px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--ink-13); }
+.col-head .name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.col-head .count { font-size: 9.5px; color: var(--ink-42); background: var(--ink-06); border: 1px solid var(--ink-13); border-radius: 10px; padding: 2px 8px; font-weight: 500; }
+.col-body { padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.col-body:empty::after { content: 'No tasks'; display: block; text-align: center; color: var(--ink-42); font-size: 11px; padding: 24px 0; }
+
+/* Card */
+.card { background: var(--cream); border: 1px solid var(--ink-13); border-radius: 8px; padding: 12px 13px; cursor: pointer; transition: 0.15s; }
+.card:hover { border-color: var(--teal-line); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.card.dragging { opacity: 0.4; }
+.card .ctitle { font-family: 'Fraunces', serif; font-size: 13px; line-height: 1.35; margin-bottom: 7px; color: var(--ink-80); }
+.card .cmeta { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--ink-42); margin-bottom: 7px; }
+.card .source { font-size: 9px; color: var(--ink-42); background: var(--ink-06); padding: 1px 6px; border-radius: 8px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.tag { font-size: 9px; font-weight: 500; padding: 2px 7px; border-radius: 10px; background: var(--teal-dim); color: #00857f; border: 1px solid var(--teal-line); white-space: nowrap; }
+.card-foot { display: flex; justify-content: space-between; align-items: center; }
+.avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--charcoal); color: #fff; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.pill { font-size: 8.5px; font-weight: 600; padding: 3px 8px; border-radius: 9px; text-transform: uppercase; letter-spacing: 0.03em; }
+.pill-draft { background: var(--ink-13); color: var(--ink-65); }
+.pill-tobeapproved { background: var(--amber-dim); color: var(--amber); }
+.pill-inprogress { background: var(--teal-dim); color: #00857f; }
+.pill-approved { background: var(--teal); color: #fff; }
+.pill-rejected { background: var(--rust); color: #fff; }
+
+/* List view */
+.list-head { display: grid; grid-template-columns: 80px 2fr 1.2fr 100px 100px 110px 50px; gap: 10px; padding: 0 12px 8px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-42); font-weight: 600; }
+.list-row { display: grid; grid-template-columns: 80px 2fr 1.2fr 100px 100px 110px 50px; gap: 10px; align-items: center; padding: 10px 12px; background: var(--cream); border: 1px solid var(--ink-13); border-radius: 8px; margin-bottom: 5px; cursor: pointer; font-size: 12px; transition: 0.15s; }
+.list-row:hover { border-color: var(--teal-line); box-shadow: var(--shadow-sm); }
+.list-row .date-cell { font-size: 10px; color: var(--ink-42); }
+.list-row .date-cell b { display: block; font-size: 12px; color: var(--charcoal); }
+.list-row .title-cell { font-family: 'Fraunces', serif; font-size: 12.5px; }
+.list-row .title-cell .type-badge { font-family: 'Inter'; font-size: 9px; color: var(--ink-42); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-top: 2px; }
+.week-group-title { font-family: 'Fraunces', serif; font-style: italic; font-size: 14px; color: var(--teal); margin: 16px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--ink-13); }
+
+/* Modal */
+.overlay { position: fixed; inset: 0; background: rgba(48,48,47,0.5); backdrop-filter: blur(2px); display: none; align-items: flex-start; justify-content: center; z-index: 100; padding: 50px 16px; overflow-y: auto; }
+.overlay.open { display: flex; }
+.modal { background: #fff; border-radius: var(--radius-lg); max-width: 680px; width: 100%; box-shadow: var(--shadow-lg); animation: modalIn 0.2s ease; }
+@keyframes modalIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--ink-13); }
+.modal-head h2 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 20px; }
+.modal-close { background: none; border: none; font-size: 20px; color: var(--ink-42); padding: 4px 8px; border-radius: 4px; }
+.modal-close:hover { background: var(--ink-06); }
+.modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; max-height: 65vh; overflow-y: auto; }
+.field label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-42); margin-bottom: 5px; }
+.field input, .field select, .field textarea {
+  width: 100%; font-size: 13px; padding: 10px 12px; border: 1px solid var(--ink-13); border-radius: var(--radius-sm); outline: none; color: var(--charcoal); background: #fff; transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--teal); }
+.field textarea { resize: vertical; min-height: 56px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.platform-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.plat-opt { font-size: 11px; padding: 5px 11px; border-radius: 16px; border: 1px solid var(--ink-13); background: #fff; cursor: pointer; color: var(--ink-65); transition: 0.15s; }
+.plat-opt:hover { border-color: var(--teal-line); }
+.plat-opt.sel { background: var(--teal); border-color: var(--teal); color: #fff; }
+.modal-foot { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px 20px; border-top: 1px solid var(--ink-13); }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--charcoal); color: #fff; font-size: 12.5px; padding: 11px 20px; border-radius: 8px; z-index: 300; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* Analytics tab */
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--ink-13); margin-bottom: 18px; }
+.tab-btn { padding: 10px 18px; font-size: 12px; font-weight: 500; border: none; background: none; color: var(--ink-42); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: 0.15s; }
+.tab-btn:hover { color: var(--charcoal); }
+.tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
+
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.chart-card { background: #fff; border: 1px solid var(--ink-13); border-radius: var(--radius-md); padding: 20px; }
+.chart-card h3 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 15px; margin-bottom: 14px; }
+.bar-chart { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-row .bar-label { font-size: 11px; min-width: 80px; color: var(--ink-65); text-align: right; }
+.bar-row .bar-track { flex: 1; height: 20px; background: var(--ink-06); border-radius: 4px; overflow: hidden; }
+.bar-row .bar-fill { height: 100%; background: var(--teal); border-radius: 4px; transition: width 0.4s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+.bar-row .bar-fill span { font-size: 9px; font-weight: 600; color: #fff; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--ink-42); }
+.empty-state h3 { font-family: 'Fraunces', serif; font-weight: 400; color: var(--charcoal); font-size: 20px; margin-bottom: 8px; }
+
+/* Assets / OneDrive */
+.assets-panel { background: #fff; border: 1px solid var(--ink-13); border-radius: var(--radius-md); padding: 24px; margin-bottom: 20px; }
+.assets-panel h3 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 17px; margin-bottom: 12px; }
+.config-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+.config-form input { font-size: 12px; padding: 9px 12px; border: 1px solid var(--ink-13); border-radius: var(--radius-sm); min-width: 300px; }
+.config-form input:focus { border-color: var(--teal); outline: none; }
+.device-code-box { background: var(--teal-dim); border: 1px solid var(--teal-line); border-radius: var(--radius-md); padding: 16px 20px; margin: 12px 0; }
+.device-code-box .code { font-size: 28px; font-weight: 700; font-family: monospace; color: var(--teal-dark); letter-spacing: 0.05em; }
+.device-code-box p { font-size: 12px; color: var(--ink-65); margin-top: 6px; }
+.upload-zone { border: 2px dashed var(--ink-13); border-radius: var(--radius-md); padding: 40px 20px; text-align: center; cursor: pointer; transition: 0.15s; margin: 16px 0; }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--teal); background: var(--teal-dim); }
+.upload-zone p { font-size: 13px; color: var(--ink-42); margin-top: 8px; }
+.upload-zone .icon { font-size: 32px; }
+.file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+.file-card { background: var(--cream); border: 1px solid var(--ink-13); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.file-card .fname { font-size: 12px; font-weight: 500; word-break: break-all; }
+.file-card .fmeta { font-size: 10px; color: var(--ink-42); }
+.file-card a { font-size: 11px; color: var(--teal); text-decoration: none; }
+.file-card a:hover { text-decoration: underline; }
+.upload-progress { margin: 12px 0; }
+.upload-progress .bar-track { height: 6px; background: var(--ink-06); border-radius: 3px; overflow: hidden; }
+.upload-progress .bar-fill { height: 100%; background: var(--teal); border-radius: 3px; transition: width 0.3s; }
+.status-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; padding: 5px 10px; border-radius: 12px; }
+.status-indicator.connected { background: var(--teal-dim); color: #00857f; }
+.status-indicator.disconnected { background: var(--rust-dim); color: var(--rust); }
+.status-indicator .dot { width: 7px; height: 7px; border-radius: 50%; }
+.status-indicator.connected .dot { background: var(--teal); }
+.status-indicator.disconnected .dot { background: var(--rust); }
+
+/* Responsive */
+@media(max-width: 768px) {
+  .app { padding: 16px; }
+  .board { gap: 10px; }
+  .col { min-width: 240px; max-width: 240px; }
+  .list-row, .list-head { grid-template-columns: 60px 1fr 80px; }
+  .analytics-grid { grid-template-columns: 1fr; }
+  .row2, .row3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+// --- API helpers ---
+const api = {
+  async get(url) { const r = await fetch(url); return r.json(); },
+  async post(url, data) { const r = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); return r.json(); },
+  async put(url, data) { const r = await fetch(url, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); return r.json(); },
+  async patch(url, data) { const r = await fetch(url, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); return r.json(); },
+  async del(url) { const r = await fetch(url, { method: 'DELETE' }); return r.json(); },
+};
+
+const STATUS_OPTIONS = ['To Do', 'In Progress', 'Done', 'Carryforward', 'Blocked'];
+const APPROVAL_OPTIONS = ['Draft', 'To be approved', 'In Progress', 'Approved', 'Rejected'];
+const TYPE_OPTIONS = ['Content', 'Campaign', 'Carousel', 'REEL', 'Teaser Video', 'Internal Prep', 'Email Campaign', 'Research', 'Creatives', 'Documentation'];
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function initials(name) { return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
+function fmtDate(d) { if (!d) return 'No date'; const dt = new Date(d + 'T00:00:00'); return isNaN(dt) ? d : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+function dayName(d) { if (!d) return ''; const dt = new Date(d + 'T00:00:00'); return isNaN(dt) ? '' : dt.toLocaleDateString('en-US', { weekday: 'short' }); }
+function pillClass(ap) { return 'pill pill-' + (ap || 'draft').toLowerCase().replace(/\s+/g, ''); }
+
+function getMondayOf(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - ((day + 6) % 7));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+function toKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function weekLabel(monday) {
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  const opts = { month: 'short', day: 'numeric' };
+  return `Week of ${monday.toLocaleDateString('en-US', opts)} – ${sunday.toLocaleDateString('en-US', opts)}`;
+}
+
+// --- Main App ---
+function App() {
+  const [tasks, setTasks] = useState([]);
+  const [stats, setStats] = useState({});
+  const [platforms, setPlatforms] = useState([]);
+  const [owners, setOwners] = useState([]);
+  const [view, setView] = useState('board');
+  const [tab, setTab] = useState('tasks');
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [showAllWeeks, setShowAllWeeks] = useState(false);
+  const [filters, setFilters] = useState({ search: '', owner: '', status: '', approval: '', platform: '' });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = useCallback(async () => {
+    const [t, s, p, o] = await Promise.all([
+      api.get('/api/tasks'), api.get('/api/stats'), api.get('/api/platforms'), api.get('/api/owners')
+    ]);
+    setTasks(t); setStats(s); setPlatforms(p); setOwners(o);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const today = new Date();
+  const currentMonday = getMondayOf(today);
+  const selectedMonday = new Date(currentMonday);
+  selectedMonday.setDate(selectedMonday.getDate() + weekOffset * 7);
+  const selectedKey = toKey(selectedMonday);
+  const isCurrent = weekOffset === 0;
+
+  // Only show Marketing Calendar tasks (ignore individual person sheets)
+  const calendarTasks = tasks.filter(t => t.source === 'Marketing Calendar');
+
+  // Compute stats from calendar tasks only
+  const calStats = (() => {
+    const all = calendarTasks;
+    const total = all.length;
+    const done = all.filter(t => t.status === 'Done').length;
+    const in_progress = all.filter(t => t.status === 'In Progress').length;
+    const todo = all.filter(t => t.status === 'To Do').length;
+    const blocked = all.filter(t => t.status === 'Blocked').length;
+    const approved = all.filter(t => t.approval === 'Approved').length;
+    const pending = all.filter(t => t.approval === 'To be approved' || t.approval === 'In Progress').length;
+    const rejected = all.filter(t => t.approval === 'Rejected').length;
+    // By platform
+    const platMap = {};
+    all.forEach(t => (t.platforms || []).forEach(p => { platMap[p] = (platMap[p] || 0) + 1; }));
+    const by_platform = Object.entries(platMap).sort((a, b) => b[1] - a[1]);
+    // By owner
+    const ownerMap = {};
+    all.forEach(t => { if (t.owner) ownerMap[t.owner] = (ownerMap[t.owner] || 0) + 1; });
+    const by_owner = Object.entries(ownerMap).sort((a, b) => b[1] - a[1]);
+    return { total, done, in_progress, todo, blocked, approved, pending, rejected, by_platform, by_owner };
+  })();
+
+  // Filter tasks
+  const filteredTasks = calendarTasks.filter(t => {
+    if (!showAllWeeks) {
+      if (!t.date) return false;
+      const taskMonday = getMondayOf(new Date(t.date + 'T00:00:00'));
+      if (toKey(taskMonday) !== selectedKey) return false;
+    }
+    if (filters.search) {
+      const hay = (t.content + ' ' + t.comment + ' ' + t.type).toLowerCase();
+      if (!hay.includes(filters.search.toLowerCase())) return false;
+    }
+    if (filters.owner && t.owner !== filters.owner) return false;
+    if (filters.status && t.status !== filters.status) return false;
+    if (filters.approval && t.approval !== filters.approval) return false;
+    if (filters.platform && !(t.platforms || []).includes(filters.platform)) return false;
+    return true;
+  });
+
+  const openModal = (task) => { setEditingTask(task || null); setModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setEditingTask(null); };
+
+  const handleSave = async (data) => {
+    if (editingTask) {
+      await api.put(`/api/tasks/${editingTask.id}`, data);
+      showToast('Task updated');
+    } else {
+      await api.post('/api/tasks', data);
+      showToast('Task created');
+    }
+    closeModal();
+    loadData();
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this task?')) return;
+    await api.del(`/api/tasks/${id}`);
+    showToast('Task deleted');
+    closeModal();
+    loadData();
+  };
+
+  const handleDrop = async (taskId, newStatus) => {
+    await api.patch(`/api/tasks/${taskId}/status`, { status: newStatus });
+    showToast(`Moved to ${newStatus}`);
+    loadData();
+  };
+
+  if (loading) return <div className="empty-state"><h3>Loading...</h3></div>;
+
+  return (
+    <div className="app">
+      <Header stats={calStats} />
+      <TabBar tab={tab} setTab={setTab} />
+
+      {tab === 'tasks' && (
+        <>
+          <WeekNav
+            weekOffset={weekOffset} setWeekOffset={setWeekOffset}
+            showAllWeeks={showAllWeeks} setShowAllWeeks={setShowAllWeeks}
+            selectedMonday={selectedMonday} isCurrent={isCurrent}
+          />
+          <Toolbar
+            filters={filters} setFilters={setFilters}
+            view={view} setView={setView}
+            owners={owners} platforms={platforms}
+            onNewTask={() => openModal(null)}
+          />
+          {view === 'board' ? (
+            <BoardView tasks={filteredTasks} onCardClick={openModal} onDrop={handleDrop} />
+          ) : (
+            <ListView tasks={filteredTasks} onRowClick={openModal} showAllWeeks={showAllWeeks} />
+          )}
+        </>
+      )}
+
+      {tab === 'analytics' && <AnalyticsView stats={calStats} tasks={calendarTasks} />}
+
+      {tab === 'assets' && <AssetsView />}
+
+      {modalOpen && (
+        <TaskModal
+          task={editingTask}
+          platforms={platforms}
+          owners={owners}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onClose={closeModal}
+        />
+      )}
+    </div>
+  );
+}
+
+// --- Header ---
+function Header({ stats }) {
+  return (
+    <div className="header">
+      <div className="brand">
+        <div className="eyebrow">Product Team</div>
+        <h1>Marketing <em>Task Manager</em></h1>
+        <div className="sub">Plan, tag, assign and track every post across channels.</div>
+      </div>
+      <div className="stats">
+        <div className="stat"><div className="num">{stats.total || 0}</div><div className="label">Tasks</div></div>
+        <div className="stat teal"><div className="num">{stats.done || 0}</div><div className="label">Done</div></div>
+        <div className="stat teal"><div className="num">{stats.approved || 0}</div><div className="label">Approved</div></div>
+        <div className="stat amber"><div className="num">{stats.pending || 0}</div><div className="label">Pending</div></div>
+        <div className="stat rust"><div className="num">{stats.rejected || 0}</div><div className="label">Rejected</div></div>
+      </div>
+    </div>
+  );
+}
+
+// --- Tab Bar ---
+function TabBar({ tab, setTab }) {
+  return (
+    <div className="tab-bar">
+      <button className={`tab-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>📋 Tasks</button>
+      <button className={`tab-btn ${tab === 'analytics' ? 'active' : ''}`} onClick={() => setTab('analytics')}>📊 Analytics</button>
+      <button className={`tab-btn ${tab === 'assets' ? 'active' : ''}`} onClick={() => setTab('assets')}>📁 Assets</button>
+    </div>
+  );
+}
+
+// --- Week Nav ---
+function WeekNav({ weekOffset, setWeekOffset, showAllWeeks, setShowAllWeeks, selectedMonday, isCurrent }) {
+  return (
+    <div className="week-nav">
+      <button className="btn btn-ghost btn-sm" onClick={() => { setWeekOffset(w => w - 1); setShowAllWeeks(false); }}>‹ Prev</button>
+      <button className="btn btn-ghost btn-sm" onClick={() => { setWeekOffset(0); setShowAllWeeks(false); }}>This week</button>
+      <span className="week-label">
+        {showAllWeeks ? 'Showing all weeks' : weekLabel(selectedMonday)}
+        {isCurrent && !showAllWeeks && <span className="badge">CURRENT</span>}
+      </span>
+      <button className="btn btn-ghost btn-sm" onClick={() => { setWeekOffset(w => w + 1); setShowAllWeeks(false); }}>Next ›</button>
+      <button className="btn-text" onClick={() => setShowAllWeeks(a => !a)}>{showAllWeeks ? 'This week' : 'All weeks'}</button>
+    </div>
+  );
+}
+
+// --- Toolbar ---
+const PLATFORM_FILTERS = ['YouTube', 'Instagram', 'WhatsApp', 'LinkedIn', 'Customer.io', 'Instantly', 'Loom', 'Blog'];
+
+function Toolbar({ filters, setFilters, view, setView, owners, platforms, onNewTask }) {
+  return (
+    <div className="toolbar" style={{flexDirection:'column',alignItems:'stretch',gap:'12px'}}>
+      <div style={{display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
+        <input type="text" placeholder="Search tasks..." value={filters.search} onChange={e => setFilters(f => ({...f, search: e.target.value}))} />
+        <select value={filters.owner} onChange={e => setFilters(f => ({...f, owner: e.target.value}))}>
+          <option value="">All owners</option>
+          {owners.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}>
+          <option value="">All statuses</option>
+          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={filters.approval} onChange={e => setFilters(f => ({...f, approval: e.target.value}))}>
+          <option value="">All approvals</option>
+          {APPROVAL_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <button className="btn-text" onClick={() => setFilters({ search: '', owner: '', status: '', approval: '', platform: '' })}>Clear</button>
+        <div className="spacer"></div>
+        <div className="view-toggle">
+          <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>Board</button>
+          <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>List</button>
+        </div>
+        <button className="btn btn-primary" onClick={onNewTask}>+ New task</button>
+      </div>
+      <div style={{display:'flex',gap:'6px',flexWrap:'wrap',alignItems:'center'}}>
+        <span style={{fontSize:'10px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--ink-42)',marginRight:'4px'}}>Channel:</span>
+        <span className={`chip ${filters.platform === '' ? 'active' : ''}`} onClick={() => setFilters(f => ({...f, platform: ''}))}>All</span>
+        {PLATFORM_FILTERS.map(p => (
+          <span key={p} className={`chip ${filters.platform === p ? 'active' : ''}`} onClick={() => setFilters(f => ({...f, platform: f.platform === p ? '' : p}))}>{p}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Board View ---
+function BoardView({ tasks, onCardClick, onDrop }) {
+  const [dragOver, setDragOver] = useState(null);
+
+  if (tasks.length === 0) return <div className="empty-state"><h3>No tasks this week</h3><p>Try a different week or clear filters.</p></div>;
+
+  return (
+    <div className="board">
+      {STATUS_OPTIONS.map(status => {
+        const items = tasks.filter(t => (t.status || 'To Do') === status);
+        return (
+          <div key={status} className={`col ${dragOver === status ? 'dragover' : ''}`}
+            onDragOver={e => { e.preventDefault(); setDragOver(status); }}
+            onDragLeave={() => setDragOver(null)}
+            onDrop={e => { e.preventDefault(); setDragOver(null); const id = e.dataTransfer.getData('text/plain'); if (id) onDrop(id, status); }}>
+            <div className="col-head">
+              <span className="name">{status}</span>
+              <span className="count">{items.length}</span>
+            </div>
+            <div className="col-body">
+              {items.map(t => <TaskCard key={t.id} task={t} onClick={() => onCardClick(t)} />)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TaskCard({ task, onClick }) {
+  return (
+    <div className="card" draggable="true" onClick={onClick}
+      onDragStart={e => { e.dataTransfer.setData('text/plain', task.id); e.currentTarget.classList.add('dragging'); }}
+      onDragEnd={e => e.currentTarget.classList.remove('dragging')}>
+      <div className="ctitle">{task.content || '(untitled)'}</div>
+      <div className="cmeta">
+        <span>{task.type || '—'}</span>
+        <span>{fmtDate(task.date)}{task.date ? `, ${dayName(task.date)}` : ''}</span>
+      </div>
+      <div className="tags">
+        {(task.platforms || []).length > 0
+          ? task.platforms.map(p => <span key={p} className="tag">{p}</span>)
+          : <span className="tag" style={{opacity: 0.4}}>no tag</span>}
+      </div>
+      <div className="card-foot">
+        <div className="avatar" title={task.owner}>{initials(task.owner)}</div>
+        <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
+          {task.link && <span style={{fontSize:'12px'}}>🔗</span>}
+          <span className={pillClass(task.approval)}>{task.approval || 'Draft'}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- List View ---
+function ListView({ tasks, onRowClick, showAllWeeks }) {
+  if (tasks.length === 0) return <div className="empty-state"><h3>No tasks</h3></div>;
+
+  const sorted = [...tasks].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+  const groups = {};
+  sorted.forEach(t => {
+    if (!t.date) { (groups['No date'] = groups['No date'] || []).push(t); return; }
+    const mon = getMondayOf(new Date(t.date + 'T00:00:00'));
+    const lbl = weekLabel(mon);
+    (groups[lbl] = groups[lbl] || []).push(t);
+  });
+
+  return (
+    <div>
+      {Object.entries(groups).map(([wk, items]) => (
+        <div key={wk}>
+          {showAllWeeks && <div className="week-group-title">{wk}</div>}
+          <div className="list-head">
+            <span>Date</span><span>Task</span><span>Platforms</span><span>Status</span><span>Owner</span><span>Approval</span><span></span>
+          </div>
+          {items.map(t => (
+            <div key={t.id} className="list-row" onClick={() => onRowClick(t)}>
+              <div className="date-cell"><b>{fmtDate(t.date)}</b>{dayName(t.date)}</div>
+              <div className="title-cell">{t.content || '(untitled)'}<span className="type-badge">{t.type}</span></div>
+              <div>{(t.platforms || []).slice(0, 2).map(p => <span key={p} className="tag">{p}</span>)}{(t.platforms||[]).length > 2 && ` +${t.platforms.length - 2}`}</div>
+              <div>{t.status || 'To Do'}</div>
+              <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div className="avatar" style={{width:'18px',height:'18px',fontSize:'8px'}}>{initials(t.owner)}</div>{t.owner}</div>
+              <div><span className={pillClass(t.approval)}>{t.approval || 'Draft'}</span></div>
+              <div>{t.link ? '🔗' : ''}</div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Analytics ---
+function AnalyticsView({ stats, tasks }) {
+  const maxOwner = stats.by_owner?.length ? Math.max(...stats.by_owner.map(x => x[1])) : 1;
+  const maxPlat = stats.by_platform?.length ? Math.max(...stats.by_platform.map(x => x[1])) : 1;
+
+  return (
+    <div className="analytics-grid">
+      <div className="chart-card">
+        <h3>Tasks by Owner</h3>
+        <div className="bar-chart">
+          {(stats.by_owner || []).map(([name, count]) => (
+            <div key={name} className="bar-row">
+              <span className="bar-label">{name}</span>
+              <div className="bar-track"><div className="bar-fill" style={{width: `${(count/maxOwner)*100}%`}}><span>{count}</span></div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="chart-card">
+        <h3>Tasks by Platform</h3>
+        <div className="bar-chart">
+          {(stats.by_platform || []).map(([name, count]) => (
+            <div key={name} className="bar-row">
+              <span className="bar-label">{name}</span>
+              <div className="bar-track"><div className="bar-fill" style={{width: `${(count/maxPlat)*100}%`, background: '#00857f'}}><span>{count}</span></div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="chart-card">
+        <h3>Status Breakdown</h3>
+        <div className="bar-chart">
+          {[['Done', stats.done], ['In Progress', stats.in_progress], ['To Do', stats.todo], ['Blocked', stats.blocked]].map(([name, count]) => (
+            <div key={name} className="bar-row">
+              <span className="bar-label">{name}</span>
+              <div className="bar-track"><div className="bar-fill" style={{width: `${(count/(stats.total||1))*100}%`, background: name==='Done'?'var(--teal)':name==='Blocked'?'var(--rust)':'var(--amber)'}}><span>{count||0}</span></div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="chart-card">
+        <h3>Approval Breakdown</h3>
+        <div className="bar-chart">
+          {[['Approved', stats.approved], ['Pending', stats.pending], ['Rejected', stats.rejected], ['Draft', stats.total - stats.approved - stats.pending - stats.rejected]].map(([name, count]) => (
+            <div key={name} className="bar-row">
+              <span className="bar-label">{name}</span>
+              <div className="bar-track"><div className="bar-fill" style={{width: `${(count/(stats.total||1))*100}%`, background: name==='Approved'?'var(--teal)':name==='Rejected'?'var(--rust)':'var(--amber)'}}><span>{count||0}</span></div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Task Modal ---
+function TaskModal({ task, platforms, owners, onSave, onDelete, onClose }) {
+  const [form, setForm] = useState({
+    content: task?.content || '',
+    type: task?.type || TYPE_OPTIONS[0],
+    date: task?.date || new Date().toISOString().slice(0, 10),
+    owner: task?.owner || owners[0] || '',
+    status: task?.status || 'To Do',
+    approval: task?.approval || 'Draft',
+    comment: task?.comment || '',
+    link: task?.link || '',
+    priority: task?.priority || '',
+    platforms: task?.platforms || [],
+  });
+
+  const togglePlatform = (p) => {
+    setForm(f => ({
+      ...f,
+      platforms: f.platforms.includes(p) ? f.platforms.filter(x => x !== p) : [...f.platforms, p]
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.content.trim()) { showToast('Add a description first'); return; }
+    onSave(form);
+  };
+
+  return (
+    <div className="overlay open" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal">
+        <div className="modal-head">
+          <h2>{task ? 'Edit Task' : 'New Task'}</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="field">
+              <label>Content / Description</label>
+              <textarea value={form.content} onChange={e => setForm(f => ({...f, content: e.target.value}))} placeholder="e.g. Carousel post on payday effect" />
+            </div>
+            <div className="row2">
+              <div className="field">
+                <label>Type</label>
+                <select value={form.type} onChange={e => setForm(f => ({...f, type: e.target.value}))}>
+                  {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label>Date</label>
+                <input type="date" value={form.date} onChange={e => setForm(f => ({...f, date: e.target.value}))} />
+              </div>
+            </div>
+            <div className="field">
+              <label>Platform Tags</label>
+              <div className="platform-picker">
+                {platforms.map(p => (
+                  <span key={p} className={`plat-opt ${form.platforms.includes(p) ? 'sel' : ''}`} onClick={() => togglePlatform(p)}>{p}</span>
+                ))}
+              </div>
+            </div>
+            <div className="row3">
+              <div className="field">
+                <label>Owner</label>
+                <select value={form.owner} onChange={e => setForm(f => ({...f, owner: e.target.value}))}>
+                  {owners.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label>Status</label>
+                <select value={form.status} onChange={e => setForm(f => ({...f, status: e.target.value}))}>
+                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label>Approval</label>
+                <select value={form.approval} onChange={e => setForm(f => ({...f, approval: e.target.value}))}>
+                  {APPROVAL_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="row2">
+              <div className="field">
+                <label>Comment</label>
+                <textarea value={form.comment} onChange={e => setForm(f => ({...f, comment: e.target.value}))} placeholder="Notes, blockers..." />
+              </div>
+              <div className="field">
+                <label>Link</label>
+                <input type="url" value={form.link} onChange={e => setForm(f => ({...f, link: e.target.value}))} placeholder="https://..." />
+                <div style={{marginTop:'8px'}}>
+                  <label>Priority</label>
+                  <select value={form.priority} onChange={e => setForm(f => ({...f, priority: e.target.value}))}>
+                    <option value="">None</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-foot">
+            {task && <button type="button" className="btn btn-danger btn-sm" onClick={() => onDelete(task.id)}>Delete</button>}
+            {!task && <div></div>}
+            <div style={{display:'flex',gap:'10px'}}>
+              <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn btn-primary">Save task</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// --- Assets / OneDrive View ---
+function AssetsView() {
+  const [authStatus, setAuthStatus] = useState(null);
+  const [clientId, setClientId] = useState('');
+  const [deviceCode, setDeviceCode] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const checkStatus = async () => {
+    const s = await api.get('/api/onedrive/status');
+    setAuthStatus(s);
+    if (s.authenticated) loadFiles();
+  };
+
+  const loadFiles = async () => {
+    try {
+      const r = await api.get('/api/onedrive/files');
+      setFiles(r.files || []);
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => { checkStatus(); }, []);
+
+  const saveConfig = async () => {
+    if (!clientId.trim()) { showToast('Enter an Azure App Client ID'); return; }
+    await api.post('/api/onedrive/config', { client_id: clientId.trim() });
+    showToast('Client ID saved');
+    checkStatus();
+  };
+
+  const startLogin = async () => {
+    setDeviceCode(null);
+    try {
+      const r = await fetch('/api/onedrive/login', { method: 'POST' });
+      if (!r.ok) { const e = await r.json(); showToast(e.detail || 'Login failed'); return; }
+      const data = await r.json();
+      setDeviceCode(data);
+    } catch (e) { showToast('Login request failed'); }
+  };
+
+  const completeLogin = async () => {
+    try {
+      const r = await fetch('/api/onedrive/login/complete', { method: 'POST' });
+      if (!r.ok) { const e = await r.json(); showToast(e.detail || 'Not yet authenticated'); return; }
+      setDeviceCode(null);
+      showToast('Connected to OneDrive!');
+      checkStatus();
+    } catch (e) { showToast('Completion failed'); }
+  };
+
+  const handleUpload = async (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    setUploading(true);
+    setUploadMsg('');
+    let success = 0;
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('subfolder', '');
+      try {
+        const r = await fetch('/api/onedrive/upload', { method: 'POST', body: fd });
+        if (r.ok) { success++; }
+        else { const e = await r.json(); setUploadMsg(`Failed: ${e.detail}`); }
+      } catch (e) { setUploadMsg('Upload error'); }
+    }
+    setUploading(false);
+    if (success > 0) {
+      showToast(`Uploaded ${success} file(s) to OneDrive`);
+      loadFiles();
+    }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/onedrive/logout', { method: 'POST' });
+    setAuthStatus({ authenticated: false });
+    setFiles([]);
+    showToast('Disconnected');
+  };
+
+  const formatSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const isConnected = authStatus?.authenticated;
+
+  return (
+    <div>
+      <div className="assets-panel">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+          <h3>OneDrive — Marketing Assets</h3>
+          {authStatus && (
+            <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
+              <span className="dot"></span>
+              {isConnected ? `Connected as ${authStatus.account}` : 'Not connected'}
+            </span>
+          )}
+        </div>
+
+        {!isConnected && (
+          <>
+            {authStatus?.reason === 'no_client_id' && (
+              <div style={{marginBottom:'16px'}}>
+                <p style={{fontSize:'12px',color:'var(--ink-65)',marginBottom:'8px'}}>
+                  To connect OneDrive, you need an Azure AD App Client ID.<br/>
+                  <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps" target="_blank" style={{color:'var(--teal)'}}>Register an app →</a> (set redirect to http://localhost, add Files.ReadWrite.All permission)
+                </p>
+                <div className="config-form">
+                  <input type="text" placeholder="Paste your Azure App Client ID here..." value={clientId} onChange={e => setClientId(e.target.value)} />
+                  <button className="btn btn-primary btn-sm" onClick={saveConfig}>Save</button>
+                </div>
+              </div>
+            )}
+
+            {authStatus?.reason !== 'no_client_id' && !deviceCode && (
+              <button className="btn btn-primary" onClick={startLogin}>Connect to OneDrive</button>
+            )}
+
+            {deviceCode && (
+              <div className="device-code-box">
+                <p style={{marginBottom:'8px',fontWeight:600}}>Sign in to Microsoft:</p>
+                <p>1. Go to <a href={deviceCode.verification_uri} target="_blank" style={{color:'var(--teal)',fontWeight:600}}>{deviceCode.verification_uri}</a></p>
+                <p>2. Enter this code:</p>
+                <div className="code">{deviceCode.user_code}</div>
+                <p style={{marginTop:'12px'}}>3. After signing in, click the button below:</p>
+                <button className="btn btn-primary btn-sm" style={{marginTop:'10px'}} onClick={completeLogin}>I've signed in ✓</button>
+              </div>
+            )}
+          </>
+        )}
+
+        {isConnected && (
+          <>
+            <div className="upload-zone"
+              className={`upload-zone ${dragOver ? 'dragover' : ''}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files); }}>
+              <div className="icon">☁️</div>
+              <p><strong>Click to upload</strong> or drag & drop files here</p>
+              <p style={{fontSize:'11px',color:'var(--ink-42)'}}>Files will be uploaded to your OneDrive Marketing Assets folder</p>
+            </div>
+            <input ref={fileInputRef} type="file" multiple style={{display:'none'}} onChange={e => handleUpload(e.target.files)} />
+
+            {uploading && (
+              <div className="upload-progress">
+                <div className="bar-track"><div className="bar-fill" style={{width:'100%',animation:'pulse 1s infinite alternate'}}></div></div>
+                <p style={{fontSize:'11px',color:'var(--ink-42)',marginTop:'4px'}}>Uploading...</p>
+              </div>
+            )}
+            {uploadMsg && <p style={{fontSize:'12px',color:'var(--rust)',marginTop:'8px'}}>{uploadMsg}</p>}
+
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'20px',marginBottom:'8px'}}>
+              <h3 style={{fontSize:'14px'}}>Files in Marketing Assets</h3>
+              <div style={{display:'flex',gap:'8px'}}>
+                <button className="btn btn-ghost btn-sm" onClick={loadFiles}>↻ Refresh</button>
+                <button className="btn-text" onClick={handleLogout}>Disconnect</button>
+              </div>
+            </div>
+
+            {files.length === 0 && <p style={{fontSize:'12px',color:'var(--ink-42)',padding:'20px 0',textAlign:'center'}}>No files yet. Upload your first asset above.</p>}
+
+            <div className="file-grid">
+              {files.map((f, i) => (
+                <div key={i} className="file-card">
+                  <div className="fname">{f.is_folder ? '📁' : '📄'} {f.name}</div>
+                  <div className="fmeta">{f.is_folder ? 'Folder' : formatSize(f.size)}{f.modified ? ` • ${new Date(f.modified).toLocaleDateString()}` : ''}</div>
+                  {f.web_url && <a href={f.web_url} target="_blank">Open in OneDrive →</a>}
+                </div>
+              ))}
+            </div>
+
+            <button className="btn-text" style={{marginTop:'12px'}} onClick={handleLogout}>Disconnect OneDrive</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Render ---
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
