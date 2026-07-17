@@ -408,9 +408,10 @@ let state = {
 const API = '';  // same origin
 
 async function apiFetch(path, opts={}){
+  const {headers, ...rest} = opts;
   const res = await fetch(API + path, {
-    headers: {'Content-Type':'application/json', ...opts.headers},
-    ...opts,
+    headers: {'Content-Type':'application/json', ...headers},
+    ...rest,
   });
   if(!res.ok) throw new Error(await res.text());
   return res.json();
@@ -1228,7 +1229,7 @@ async function addFeatureInline(){
     renderFeatureManagerList();
     renderFeatureTimeline();
     showToast('Feature added');
-  }catch(e){ showToast('Failed to add feature'); }
+  }catch(e){ console.error('addFeatureInline error:', e); showToast('Failed to add feature: ' + e.message); }
 }
 
 /* ---------------- init ---------------- */
