@@ -83,6 +83,10 @@
   .card .cmeta{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--ink-42);margin-bottom:8px;}
   .tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;}
   .tag{font-size:9.5px;font-weight:500;padding:3px 8px;border-radius:10px;background:var(--teal-dim);color:#00857f;border:1px solid var(--teal-line);white-space:nowrap;}
+  .card-link{display:flex;align-items:center;gap:5px;padding:5px 8px;margin-bottom:8px;border-radius:6px;background:rgba(0,186,178,0.06);border:1px solid var(--teal-line);cursor:pointer;transition:.15s;overflow:hidden;}
+  .card-link:hover{background:var(--teal-dim);border-color:var(--teal);}
+  .card-link span{font-size:10px;color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}
+  .card-link svg{flex-shrink:0;color:var(--teal);}
   .card-foot{display:flex;justify-content:space-between;align-items:center;}
   .owner-badge{width:22px;height:22px;border-radius:50%;background:var(--charcoal);color:#fff;font-size:9.5px;font-weight:600;display:flex;align-items:center;justify-content:center;}
   .icon-row{display:flex;gap:8px;align-items:center;color:var(--ink-42);}
@@ -510,6 +514,7 @@ async function deleteAssetBlob(taskId, assetId){}
 /* ---------------- helpers ---------------- */
 function uid(prefix){ return prefix+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function getDomain(url){ try{ return new URL(url).hostname.replace('www.',''); }catch(e){ return url.slice(0,30); } }
 function slugify(s){ return (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,40); }
 function allPlatforms(){ return [...PLATFORMS_DEFAULT, ...state.customPlatforms]; }
 function allOwners(){ return [...OWNERS_DEFAULT, ...state.customOwners]; }
@@ -650,15 +655,16 @@ function cardHtml(t){
   const feat = getTaskFeature(t);
   const featureClass = feat ? ' feature-card' : '';
   const featureBadge = feat ? `<span class="feature-badge">${esc(feat.name)}</span>` : '';
+  const linkPreview = t.link ? `<div class="card-link" onclick="event.stopPropagation();window.open('${esc(t.link)}','_blank')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>${getDomain(t.link)}</span></div>` : '';
   return `
   <div class="card${featureClass}" draggable="true" data-id="${t.id}" onclick="openTaskModal('${t.id}')">
     <div class="ctitle">${esc(t.content) || '(untitled task)'}${featureBadge}</div>
     <div class="cmeta"><span>${esc(t.type||'—')}</span><span>${fmtDate(t.date)}${t.date?', '+dayName(t.date):''}</span></div>
     <div class="tags">${(t.platforms||[]).map(p=>`<span class="tag">${esc(p)}</span>`).join('') || '<span class="tag" style="opacity:.4">no tag</span>'}</div>
+    ${linkPreview}
     <div class="card-foot">
       <div class="owner-badge" title="${esc(t.owner)}">${initials(t.owner)}</div>
       <div class="icon-row">
-        ${t.link ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.07 0l2-2a5 5 0 00-7.07-7.07l-1 1"/><path d="M14 11a5 5 0 00-7.07 0l-2 2a5 5 0 007.07 7.07l1-1"/></svg>` : ''}
         ${assetCount ? `<span style="font-size:10px;">📎 ${assetCount}</span>` : ''}
         <span class="approval-pill ${apClass(t.approval)}">${esc(t.approval||'Draft')}</span>
       </div>
@@ -699,7 +705,7 @@ function listHtml(list){
           <div>${esc(t.status||'To Do')}</div>
           <div class="lr-owner"><div class="owner-badge" style="display:inline-flex;">${initials(t.owner)}</div></div>
           <div><span class="approval-pill ${apClass(t.approval)}">${esc(t.approval||'Draft')}</span></div>
-          <div>${(t.assets||[]).length?'📎':''}</div>
+          <div>${t.link ? `<a href="${esc(t.link)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--teal);font-size:10px;text-decoration:none;" title="${esc(t.link)}">↗</a>` : ''}${(t.assets||[]).length?'📎':''}</div>
         </div>`;
       }).join('')}
     </div>
