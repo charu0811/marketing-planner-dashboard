@@ -16,9 +16,30 @@ app = FastAPI(title="Wylth Marketing Task Manager")
 
 # --- Init ---
 db.init_db()
-EXCEL_FILE = os.path.join(os.path.dirname(__file__), "Marketing Planner (Product Team) (1).xlsx")
-if not db.is_imported() and os.path.exists(EXCEL_FILE):
-    db.import_from_excel(EXCEL_FILE)
+EXCEL_FILE = os.path.join(os.path.dirname(__file__), "Marketing Planner (Product Team) (2).xlsx")
+# Import v2: includes features from column 8 + correct column mapping
+IMPORT_VERSION = "v2_features"
+if os.path.exists(EXCEL_FILE):
+    conn = db.get_connection()
+    version_check = db._query_scalar(conn, 
+        "SELECT COUNT(*) FROM import_log WHERE filename = %s",
+        "SELECT COUNT(*) FROM import_log WHERE filename = ?",
+        (IMPORT_VERSION,))
+    conn.close()
+    if version_check == 0:
+        db.import_from_excel(EXCEL_FILE)
+        # Mark this version as imported
+        conn = db.get_connection()
+        if db.DATABASE_URL:
+            cur = conn.cursor()
+            cur.execute("INSERT INTO import_log (filename, imported_at, row_count) VALUES (%s, %s, %s)",
+                        (IMPORT_VERSION, "auto", 0))
+            cur.close()
+        else:
+            conn.execute("INSERT INTO import_log (filename, imported_at, row_count) VALUES (?, ?, ?)",
+                         (IMPORT_VERSION, "auto", 0))
+        conn.commit()
+        conn.close()
 
 
 # --- Models ---

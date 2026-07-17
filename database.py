@@ -296,6 +296,7 @@ def make_task_id(content, date, owner):
 
 def import_from_excel(filepath):
     import openpyxl
+    import uuid as _uuid
     wb = openpyxl.load_workbook(filepath, data_only=True)
     conn = get_connection()
     now = datetime.now().isoformat()
@@ -303,6 +304,38 @@ def import_from_excel(filepath):
 
     if 'Marketing Calendar' in wb.sheetnames:
         ws = wb['Marketing Calendar']
+
+        # First pass: collect features from column 8 and create them
+        feature_names = set()
+        for row in ws.iter_rows(min_row=3, max_row=ws.max_row, values_only=True):
+            if not row[0] or not isinstance(row[0], datetime):
+                continue
+            feat = str(row[8] or '').strip()
+            if feat and feat != 'None':
+                feature_names.add(feat)
+
+        # Get existing features
+        existing_feats = _query_all(conn, "SELECT * FROM features", "SELECT * FROM features")
+        existing_map = {f['name'].lower(): f['id'] for f in existing_feats}
+        feature_map = dict(existing_map)  # lowercase name -> id
+
+        for feat_name in sorted(feature_names):
+            if feat_name.lower() not in feature_map:
+                feat_id = f"feat_{_uuid.uuid4().hex[:8]}"
+                if DATABASE_URL:
+                    cur = conn.cursor()
+                    cur.execute("INSERT INTO features (id, name, release_date, comments, created_at) VALUES (%s, %s, %s, %s, %s)",
+                                (feat_id, feat_name, '', '', now))
+                    cur.close()
+                else:
+                    conn.execute("INSERT INTO features (id, name, release_date, comments, created_at) VALUES (?, ?, ?, ?, ?)",
+                                 (feat_id, feat_name, '', '', now))
+                feature_map[feat_name.lower()] = feat_id
+
+        conn.commit()
+
+        # Second pass: import tasks with correct column mapping
+        # [0]=Date [1]=Day [2]=Content [3]=Type [4]=Platform [5]=Platform2 [6]=Status [7]=Owner [8]=Feature [9]=FeatureType [10]=Approval [11]=Comment [12]=Link
         for row in ws.iter_rows(min_row=3, max_row=ws.max_row, values_only=True):
             if not row[0] or not isinstance(row[0], datetime):
                 continue
@@ -313,26 +346,29 @@ def import_from_excel(filepath):
 
             task_type = normalize_type(str(row[3] or ''))
             platforms = normalize_platforms(str(row[4] or ''))
-            status = normalize_status(str(row[5] or ''))
-            owner = str(row[6] or '').strip()
-            approval = normalize_approval(str(row[7] or ''))
-            comment = str(row[8] or '').strip()
-            link = str(row[9] or '').strip()
+            status = normalize_status(str(row[6] or ''))
+            owner = str(row[7] or '').strip()
+            feat_name = str(row[8] or '').strip()
+            approval = normalize_approval(str(row[10] or ''))
+            comment = str(row[11] or '').strip()
+            link = str(row[12] or '').strip() if len(row) > 12 else ''
             if link == 'None':
                 link = ''
+
+            feature_id = feature_map.get(feat_name.lower(), '') if feat_name and feat_name != 'None' else ''
 
             task_id = make_task_id(content, date_str, owner)
 
             if DATABASE_URL:
                 cur = conn.cursor()
                 cur.execute("""
-                    INSERT INTO tasks (id, content, type, date, owner, status, approval, comment, link, priority, source, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO tasks (id, content, type, date, owner, status, approval, comment, link, priority, feature_id, source, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (id) DO UPDATE SET
                         content=EXCLUDED.content, type=EXCLUDED.type, date=EXCLUDED.date,
                         owner=EXCLUDED.owner, status=EXCLUDED.status, approval=EXCLUDED.approval,
-                        comment=EXCLUDED.comment, link=EXCLUDED.link, updated_at=EXCLUDED.updated_at
-                """, (task_id, content, task_type, date_str, owner, status, approval, comment, link, '', 'Marketing Calendar', now, now))
+                        comment=EXCLUDED.comment, link=EXCLUDED.link, feature_id=EXCLUDED.feature_id, updated_at=EXCLUDED.updated_at
+                """, (task_id, content, task_type, date_str, owner, status, approval, comment, link, '', feature_id, 'Marketing Calendar', now, now))
                 cur.execute("DELETE FROM task_platforms WHERE task_id = %s", (task_id,))
                 for p in platforms:
                     cur.execute("INSERT INTO task_platforms (task_id, platform) VALUES (%s, %s) ON CONFLICT DO NOTHING", (task_id, p))
@@ -342,9 +378,9 @@ def import_from_excel(filepath):
                 cur.close()
             else:
                 conn.execute("""
-                    INSERT OR REPLACE INTO tasks (id, content, type, date, owner, status, approval, comment, link, priority, source, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (task_id, content, task_type, date_str, owner, status, approval, comment, link, '', 'Marketing Calendar', now, now))
+                    INSERT OR REPLACE INTO tasks (id, content, type, date, owner, status, approval, comment, link, priority, feature_id, source, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (task_id, content, task_type, date_str, owner, status, approval, comment, link, '', feature_id, 'Marketing Calendar', now, now))
                 conn.execute("DELETE FROM task_platforms WHERE task_id = ?", (task_id,))
                 for p in platforms:
                     conn.execute("INSERT OR IGNORE INTO task_platforms (task_id, platform) VALUES (?, ?)", (task_id, p))
