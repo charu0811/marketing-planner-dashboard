@@ -3,7 +3,7 @@ import os
 import hashlib
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "tasks.db")
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "tasks.db"))
 
 
 def get_connection():
