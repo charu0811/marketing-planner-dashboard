@@ -88,6 +88,19 @@ def init_db():
         )""")
         conn.commit()
         cur.close()
+        # Migrations for PostgreSQL (add columns if missing)
+        cur = conn.cursor()
+        try:
+            cur.execute("ALTER TABLE features ADD COLUMN comments TEXT DEFAULT ''")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        try:
+            cur.execute("ALTER TABLE tasks ADD COLUMN feature_id TEXT DEFAULT ''")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        cur.close()
     else:
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS features (
