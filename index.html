@@ -209,6 +209,7 @@
     <select id="approvalFilter" onchange="onFilterChange()"><option value="">All approvals</option></select>
     <select id="featureFilter" onchange="onFilterChange()"><option value="">All features</option></select>
     <button class="feature-filter-btn" id="featureOnlyBtn" onclick="toggleFeatureOnly()">🚀 Features only</button>
+    <button class="feature-filter-btn" id="manageFeatureInlineBtn" onclick="toggleInlineFeaturePanel()" style="background:#f3e8ff;border-color:#c084fc;">⚙️ Manage Features</button>
     <div id="platformFilterChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
     <button class="btn-text" onclick="clearFilters()">Clear filters</button>
     <div class="spacer"></div>
@@ -217,6 +218,20 @@
       <button id="viewListBtn" onclick="setView('list')">List</button>
     </div>
     <button class="btn btn-primary" onclick="openTaskModal()">+ New task</button>
+  </div>
+
+  <div id="inlineFeaturePanel" style="display:none;margin:0 0 20px;padding:18px 20px;border-radius:12px;background:#faf5ff;border:1px solid #e9d5ff;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 style="margin:0;font-family:'Fraunces',serif;font-size:16px;color:#7C3AED;">⚙️ Feature Manager</h3>
+      <button class="btn-text" style="font-size:11px;color:var(--ink-42);" onclick="toggleInlineFeaturePanel()">Close ✕</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:#fff;border:1px solid #e9d5ff;">
+      <input type="text" id="inlineNewFeatName" placeholder="Feature name" style="flex:1;min-width:140px;font-size:12px;padding:8px 10px;border:1px solid var(--ink-13);border-radius:6px;">
+      <input type="date" id="inlineNewFeatDate" style="font-size:12px;padding:8px 10px;border:1px solid var(--ink-13);border-radius:6px;">
+      <textarea id="inlineNewFeatComments" placeholder="Comments (optional)" rows="1" style="flex-basis:100%;font-size:11px;padding:8px 10px;border:1px solid var(--ink-13);border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
+      <button class="btn btn-primary" style="padding:8px 14px;font-size:11px;margin-left:auto;" onclick="addFeatureInline()">+ Add</button>
+    </div>
+    <div id="inlineFeatureList" style="display:flex;flex-direction:column;gap:10px;max-height:350px;overflow-y:auto;"></div>
   </div>
 
   <div id="featureTimeline"></div>
@@ -1113,6 +1128,7 @@ async function saveFeatureEdit(featId){
     feat.comments = newComments;
     populateStaticSelects();
     renderFeatureManagerList();
+    renderInlineFeatureList();
     renderFeatureTimeline();
     showToast('Feature updated');
   }catch(e){ showToast('Failed to update feature'); }
@@ -1125,9 +1141,94 @@ async function deleteFeatureConfirm(featId){
     state.tasks.forEach(t=>{ if(t.feature_id===featId) t.feature_id=''; });
     populateStaticSelects();
     renderFeatureManagerList();
+    renderInlineFeatureList();
     render();
     showToast('Feature deleted');
   }catch(e){ showToast('Failed to delete'); }
+}
+
+/* --- Inline Feature Panel --- */
+function toggleInlineFeaturePanel(){
+  const panel = document.getElementById('inlineFeaturePanel');
+  if(panel.style.display==='none'){
+    panel.style.display='block';
+    renderInlineFeatureList();
+  } else {
+    panel.style.display='none';
+  }
+}
+function renderInlineFeatureList(){
+  const box = document.getElementById('inlineFeatureList');
+  if(!box) return;
+  if(!FEATURES.length){ box.innerHTML='<div style="text-align:center;color:var(--ink-42);font-size:12px;padding:16px;">No features yet. Add one above.</div>'; return; }
+  box.innerHTML = FEATURES.map(f => `
+    <div style="padding:12px 14px;border:1px solid #e9d5ff;border-radius:8px;background:#fff;" data-feat-id="${f.id}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <div style="flex:1;">
+          <span style="font-family:'Fraunces',serif;font-size:13px;font-weight:600;">${esc(f.name)}</span>
+          <span style="font-size:10px;color:var(--ink-42);margin-left:8px;">${state.tasks.filter(t=>t.feature_id===f.id).length} tasks</span>
+        </div>
+        <button class="btn-text" style="color:#7C3AED;font-size:11px;" onclick="toggleInlineEdit('${f.id}')">Edit</button>
+        <button class="btn-text" style="color:var(--rust);font-size:11px;" onclick="deleteFeatureConfirm('${f.id}')">Delete</button>
+      </div>
+      <div id="inline-view-${f.id}" style="font-size:11px;color:var(--ink-60);">
+        <span><strong>Release:</strong> ${f.releaseDate ? fmtDate(f.releaseDate) : 'Not set'}</span>
+        ${f.comments ? '<div style="margin-top:3px;"><strong>Comments:</strong> '+esc(f.comments)+'</div>' : ''}
+      </div>
+      <div id="inline-edit-${f.id}" style="display:none;margin-top:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+          <input type="text" id="il-name-${f.id}" value="${esc(f.name)}" placeholder="Name" style="flex:1;min-width:120px;font-size:12px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;">
+          <input type="date" id="il-date-${f.id}" value="${f.releaseDate||''}" style="font-size:12px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;">
+        </div>
+        <textarea id="il-comments-${f.id}" rows="2" placeholder="Comments" style="width:100%;font-size:11px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;resize:vertical;font-family:inherit;margin-bottom:8px;">${esc(f.comments||'')}</textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="toggleInlineEdit('${f.id}')">Cancel</button>
+          <button class="btn btn-primary" style="font-size:11px;padding:5px 10px;" onclick="saveInlineEdit('${f.id}')">Save</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function toggleInlineEdit(featId){
+  const editDiv = document.getElementById('inline-edit-'+featId);
+  const viewDiv = document.getElementById('inline-view-'+featId);
+  if(editDiv.style.display==='none'){ editDiv.style.display='block'; viewDiv.style.display='none'; }
+  else { editDiv.style.display='none'; viewDiv.style.display='block'; }
+}
+async function saveInlineEdit(featId){
+  const feat = FEATURES.find(f=>f.id===featId);
+  if(!feat) return;
+  const newName = document.getElementById('il-name-'+featId).value.trim();
+  const newDate = document.getElementById('il-date-'+featId).value;
+  const newComments = document.getElementById('il-comments-'+featId).value.trim();
+  if(!newName){ showToast('Feature name cannot be empty'); return; }
+  try{
+    await apiFetch('/api/features/'+encodeURIComponent(featId), { method:'PUT', body: JSON.stringify({ name: newName, release_date: newDate, comments: newComments }) });
+    feat.name = newName; feat.releaseDate = newDate; feat.comments = newComments;
+    populateStaticSelects();
+    renderInlineFeatureList();
+    renderFeatureManagerList();
+    renderFeatureTimeline();
+    showToast('Feature updated');
+  }catch(e){ showToast('Failed to update feature'); }
+}
+async function addFeatureInline(){
+  const name = document.getElementById('inlineNewFeatName').value.trim();
+  const date = document.getElementById('inlineNewFeatDate').value;
+  const comments = document.getElementById('inlineNewFeatComments').value.trim();
+  if(!name){ showToast('Enter a feature name'); return; }
+  try{
+    const res = await apiFetch('/api/features', { method:'POST', body: JSON.stringify({ name, release_date: date, comments }) });
+    FEATURES.push({ id: res.id, name, releaseDate: date, comments });
+    document.getElementById('inlineNewFeatName').value='';
+    document.getElementById('inlineNewFeatDate').value='';
+    document.getElementById('inlineNewFeatComments').value='';
+    populateStaticSelects();
+    renderInlineFeatureList();
+    renderFeatureManagerList();
+    renderFeatureTimeline();
+    showToast('Feature added');
+  }catch(e){ showToast('Failed to add feature'); }
 }
 
 /* ---------------- init ---------------- */
