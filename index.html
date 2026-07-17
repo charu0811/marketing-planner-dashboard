@@ -152,8 +152,10 @@
   .asset-item .aacts button{border:none;background:none;cursor:pointer;color:var(--ink-42);font-size:10px;text-decoration:underline;}
   .asset-item .aacts button:hover{color:var(--rust);}
   .modal-foot{display:flex;justify-content:space-between;align-items:center;padding:18px 26px 24px;border-top:1px solid var(--ink-13);}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--charcoal);color:#fff;font-size:12.5px;padding:11px 20px;border-radius:8px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;}
-  .toast.show{opacity:1;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--charcoal);color:#fff;font-size:12.5px;padding:11px 20px;border-radius:8px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;display:flex;align-items:center;gap:12px;}
+  .toast.show{opacity:1;pointer-events:auto;}
+  .toast .undo-btn{background:var(--teal);color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .toast .undo-btn:hover{background:#00a89f;}
   .lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:300;padding:30px;}
   .lightbox.open{display:flex;}
   .lightbox img,.lightbox video{max-width:90vw;max-height:88vh;border-radius:6px;}
@@ -246,6 +248,27 @@
       <button id="viewListBtn" onclick="setView('list')">List</button>
     </div>
     <button class="btn btn-primary" onclick="openTaskModal()">+ New task</button>
+    <button class="chip-toggle" onclick="toggleOneDrivePanel()" title="OneDrive Assets">☁️ OneDrive</button>
+  </div>
+
+  <!-- ONEDRIVE PANEL -->
+  <div id="oneDrivePanel" class="feat-panel" style="display:none;">
+    <div class="feat-panel-head">
+      <h3>OneDrive <em>Assets</em></h3>
+      <button class="btn-text" onclick="toggleOneDrivePanel()">✕ Close</button>
+    </div>
+    <div class="feat-panel-body">
+      <div id="odStatus" style="margin-bottom:14px;"></div>
+      <div id="odConfig" style="display:none;margin-bottom:14px;">
+        <div class="feat-add-form">
+          <input type="text" id="odClientId" placeholder="Azure AD App Client ID" style="flex:1;min-width:200px;">
+          <button class="btn btn-primary" onclick="saveOneDriveConfig()">Save & Connect</button>
+        </div>
+        <p style="font-size:10px;color:var(--ink-42);margin:8px 0 0;">Register an app at <a href="https://portal.azure.com" target="_blank" style="color:var(--teal);">portal.azure.com</a> → App registrations → New → Add "Files.ReadWrite.All" + "User.Read" API permissions → Allow public client flows.</p>
+      </div>
+      <div id="odLogin" style="display:none;margin-bottom:14px;"></div>
+      <div id="odFiles" style="display:none;"></div>
+    </div>
   </div>
 
   <div id="inlineFeaturePanel" class="feat-panel" style="display:none;">
@@ -522,7 +545,20 @@ function initials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').sli
 function dayName(dateStr){ if(!dateStr) return ''; const d=new Date(dateStr+'T00:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('en-US',{weekday:'short'}); }
 function fmtDate(dateStr){ if(!dateStr) return 'No date'; const d=new Date(dateStr+'T00:00:00'); if(isNaN(d)) return dateStr; return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
 function apClass(ap){ return 'ap-'+(ap||'draft').toLowerCase().replace(/\s+/g,''); }
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(window._toastT); window._toastT=setTimeout(()=>t.classList.remove('show'),2200); }
+function showToast(msg, undoFn){ 
+  const t=document.getElementById('toast'); 
+  t.innerHTML = esc(msg) + (undoFn ? ' <button class="undo-btn" id="undoBtn">Undo</button>' : '');
+  t.classList.add('show'); 
+  clearTimeout(window._toastT); 
+  window._toastT=setTimeout(()=>{ t.classList.remove('show'); window._undoFn=null; }, undoFn ? 5000 : 2200);
+  window._undoFn = undoFn || null;
+  if(undoFn){
+    setTimeout(()=>{
+      const btn = document.getElementById('undoBtn');
+      if(btn) btn.onclick = async ()=>{ t.classList.remove('show'); if(window._undoFn){ await window._undoFn(); window._undoFn=null; } };
+    }, 10);
+  }
+}
 
 /* ---------------- static selects ---------------- */
 function populateStaticSelects(){
@@ -960,8 +996,23 @@ async function handleFiles(files){
     });
     const assetId = uid('a');
     const meta = { id: assetId, name: file.name, type: file.type||'application/octet-stream', size: file.size };
+    
+    // Upload to OneDrive if connected
+    if(odState.authenticated){
+      try{
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('subfolder', state.editingId || 'unsorted');
+        const uploadRes = await fetch(API + '/api/onedrive/upload', { method:'POST', body: formData });
+        const uploadData = await uploadRes.json();
+        if(uploadData.success){
+          meta.onedrive_url = uploadData.web_url || uploadData.share_link || '';
+          meta.onedrive_id = uploadData.id || '';
+        }
+      }catch(e){ console.warn('OneDrive upload failed, storing locally', e); }
+    }
+    
     state.modalAssets.push(meta);
-    // if editing an existing saved task, persist immediately; else stash in a temp buffer keyed by assetId
     if(state.editingId){
       await storeAssetBlob(state.editingId, assetId, { name: file.name, type: meta.type, dataUrl });
     } else {
@@ -1015,6 +1066,7 @@ async function saveTask(){
   if(!content){ showToast('Add a task description first'); return; }
   const isNew = !state.editingId;
   const id = state.editingId || uid('t');
+  const prevTask = !isNew ? JSON.parse(JSON.stringify(state.tasks.find(t=>t.id===id))) : null;
   const payload = {
     id,
     content,
@@ -1050,7 +1102,20 @@ async function saveTask(){
     populateStaticSelects();
     closeModal();
     render();
-    showToast(isNew ? 'Task created' : 'Task saved');
+    if(isNew){
+      showToast('Task created');
+    } else {
+      showToast('Task saved', async ()=>{
+        // Undo: revert to previous state
+        try{
+          await saveTaskToServer(prevTask, false);
+          const idx = state.tasks.findIndex(t=>t.id===id);
+          state.tasks[idx] = prevTask;
+          render();
+          showToast('Edit undone');
+        }catch(e){ showToast('Failed to undo'); }
+      });
+    }
   }catch(e){
     console.error(e);
     showToast('Save failed — check connection');
@@ -1059,14 +1124,25 @@ async function saveTask(){
 
 async function deleteCurrentTask(){
   if(!state.editingId) return;
-  if(!confirm('Delete this task? This cannot be undone.')) return;
+  if(!confirm('Delete this task? You can undo within 5 seconds.')) return;
   const id = state.editingId;
+  const deletedTask = state.tasks.find(t=>t.id===id);
+  if(!deletedTask) return;
+  const taskCopy = JSON.parse(JSON.stringify(deletedTask));
   try{
     await deleteTaskFromServer(id);
     state.tasks = state.tasks.filter(t=>t.id!==id);
     closeModal();
     render();
-    showToast('Task deleted');
+    showToast('Task deleted', async ()=>{
+      // Undo: recreate the task
+      try{
+        await saveTaskToServer(taskCopy, true);
+        state.tasks.push(taskCopy);
+        render();
+        showToast('Task restored');
+      }catch(e){ showToast('Failed to restore task'); }
+    });
   }catch(e){
     console.error(e);
     showToast('Delete failed — check connection');
@@ -1160,7 +1236,10 @@ async function saveFeatureEdit(featId){
   }catch(e){ console.error('saveFeatureEdit', e); showToast('Failed to update: ' + e.message); }
 }
 async function deleteFeatureConfirm(featId){
-  if(!confirm('Delete this feature? Tasks will be unlinked but not deleted.')) return;
+  if(!confirm('Delete this feature? Tasks will be unlinked.')) return;
+  const feat = FEATURES.find(f=>f.id===featId);
+  const featCopy = feat ? {...feat} : null;
+  const linkedTasks = state.tasks.filter(t=>t.feature_id===featId).map(t=>t.id);
   try{
     await apiFetch('/api/features/'+encodeURIComponent(featId), { method:'DELETE' });
     FEATURES = FEATURES.filter(f=>f.id!==featId);
@@ -1170,7 +1249,21 @@ async function deleteFeatureConfirm(featId){
     renderInlineFeatureList();
     renderFeatureTimeline();
     render();
-    showToast('Feature deleted');
+    showToast('Feature deleted', async ()=>{
+      // Undo: recreate feature and relink tasks
+      try{
+        await apiFetch('/api/features', { method:'POST', body: JSON.stringify({ name: featCopy.name, release_date: featCopy.releaseDate||'', comments: featCopy.comments||'' }) });
+        // Re-fetch to get new ID (may differ)
+        const feats = await apiFetch('/api/features');
+        FEATURES = feats.map(f => ({ id: f.id, name: f.name, releaseDate: f.release_date||'', comments: f.comments||'' }));
+        populateStaticSelects();
+        renderFeatureManagerList();
+        renderInlineFeatureList();
+        renderFeatureTimeline();
+        render();
+        showToast('Feature restored');
+      }catch(e){ showToast('Failed to restore feature'); }
+    });
   }catch(e){ console.error('deleteFeature', e); showToast('Failed to delete: ' + e.message); }
 }
 
@@ -1258,6 +1351,131 @@ async function addFeatureInline(){
     renderFeatureTimeline();
     showToast('Feature "' + name + '" added');
   }catch(e){ console.error('addFeatureInline', e); showToast('Failed to add feature: ' + e.message); }
+}
+
+/* ---------------- OneDrive Integration ---------------- */
+let odState = { authenticated: false, flow: null };
+
+function toggleOneDrivePanel(){
+  const panel = document.getElementById('oneDrivePanel');
+  if(panel.style.display==='none'){
+    panel.style.display='block';
+    checkOneDriveStatus();
+  } else {
+    panel.style.display='none';
+  }
+}
+
+async function checkOneDriveStatus(){
+  try{
+    const status = await apiFetch('/api/onedrive/status');
+    odState.authenticated = status.authenticated;
+    renderOneDriveUI(status);
+  }catch(e){
+    document.getElementById('odStatus').innerHTML = '<div style="color:var(--rust);font-size:12px;">Failed to check OneDrive status</div>';
+  }
+}
+
+function renderOneDriveUI(status){
+  const statusEl = document.getElementById('odStatus');
+  const configEl = document.getElementById('odConfig');
+  const loginEl = document.getElementById('odLogin');
+  const filesEl = document.getElementById('odFiles');
+
+  if(status.authenticated){
+    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--teal-dim);border:1px solid var(--teal-line);border-radius:8px;">
+      <span style="font-size:12px;color:var(--teal);font-weight:600;">✓ Connected</span>
+      <span style="font-size:11px;color:var(--ink-65);">${esc(status.account||'')}</span>
+      <button class="btn-text" style="margin-left:auto;color:var(--rust);" onclick="logoutOneDrive()">Disconnect</button>
+    </div>`;
+    configEl.style.display='none';
+    loginEl.style.display='none';
+    filesEl.style.display='block';
+    loadOneDriveFiles();
+  } else if(status.reason === 'no_client_id'){
+    statusEl.innerHTML = '<div style="font-size:12px;color:var(--ink-65);padding:8px 0;">No Azure AD app configured. Enter your Client ID below to get started.</div>';
+    configEl.style.display='block';
+    loginEl.style.display='none';
+    filesEl.style.display='none';
+  } else {
+    statusEl.innerHTML = '<div style="font-size:12px;color:var(--amber);padding:8px 0;">Not signed in. Click below to authenticate with Microsoft.</div>';
+    configEl.style.display='none';
+    loginEl.style.display='block';
+    loginEl.innerHTML = `<button class="btn btn-primary" onclick="startOneDriveLogin()">Sign in to OneDrive</button>`;
+    filesEl.style.display='none';
+  }
+}
+
+async function saveOneDriveConfig(){
+  const clientId = document.getElementById('odClientId').value.trim();
+  if(!clientId){ showToast('Enter a Client ID'); return; }
+  try{
+    await apiFetch('/api/onedrive/config', { method:'POST', body: JSON.stringify({ client_id: clientId }) });
+    showToast('Config saved');
+    checkOneDriveStatus();
+  }catch(e){ showToast('Failed to save config: ' + e.message); }
+}
+
+async function startOneDriveLogin(){
+  const loginEl = document.getElementById('odLogin');
+  loginEl.innerHTML = '<div style="font-size:12px;color:var(--ink-42);">Starting authentication...</div>';
+  try{
+    const res = await apiFetch('/api/onedrive/login', { method:'POST' });
+    if(res.error){ loginEl.innerHTML = `<div style="color:var(--rust);font-size:12px;">${esc(res.error)}</div>`; return; }
+    loginEl.innerHTML = `
+      <div style="padding:14px;border:1px solid var(--teal-line);border-radius:8px;background:var(--teal-dim);">
+        <p style="font-size:12px;margin:0 0 8px;"><strong>Step 1:</strong> Go to <a href="${esc(res.verification_uri)}" target="_blank" style="color:var(--teal);font-weight:600;">${esc(res.verification_uri)}</a></p>
+        <p style="font-size:12px;margin:0 0 8px;"><strong>Step 2:</strong> Enter code: <code style="font-size:14px;font-weight:700;background:#fff;padding:3px 8px;border-radius:4px;">${esc(res.user_code)}</code></p>
+        <p style="font-size:11px;color:var(--ink-42);margin:0 0 10px;">After entering the code and signing in, click below:</p>
+        <button class="btn btn-primary" onclick="completeOneDriveLogin()">I've signed in ✓</button>
+      </div>`;
+  }catch(e){ loginEl.innerHTML = `<div style="color:var(--rust);font-size:12px;">Error: ${esc(e.message)}</div>`; }
+}
+
+async function completeOneDriveLogin(){
+  const loginEl = document.getElementById('odLogin');
+  loginEl.innerHTML += '<div style="font-size:11px;color:var(--ink-42);margin-top:8px;">Verifying...</div>';
+  try{
+    const res = await apiFetch('/api/onedrive/login/complete', { method:'POST' });
+    if(res.error){ showToast('Login failed: ' + res.error); return; }
+    showToast('OneDrive connected!');
+    checkOneDriveStatus();
+  }catch(e){ showToast('Login verification failed: ' + e.message); }
+}
+
+async function loadOneDriveFiles(){
+  const filesEl = document.getElementById('odFiles');
+  filesEl.innerHTML = '<div style="font-size:11px;color:var(--ink-42);">Loading files...</div>';
+  try{
+    const res = await apiFetch('/api/onedrive/files');
+    if(res.error){ filesEl.innerHTML = `<div style="color:var(--rust);font-size:12px;">${esc(res.error)}</div>`; return; }
+    const files = res.files || [];
+    if(!files.length){
+      filesEl.innerHTML = '<div style="font-size:12px;color:var(--ink-42);text-align:center;padding:20px;">No files in Marketing Assets folder yet. Upload assets from the task modal.</div>';
+      return;
+    }
+    filesEl.innerHTML = `
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-42);margin-bottom:8px;">Marketing Assets (${files.length} files)</div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:250px;overflow-y:auto;">
+        ${files.map(f => `
+          <div class="asset-item">
+            <div class="aname"><span>${esc(f.name)}</span></div>
+            <div class="aacts">
+              <a href="${esc(f.webUrl||f.web_url||'#')}" target="_blank" style="font-size:10px;color:var(--teal);text-decoration:none;">Open ↗</a>
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+  }catch(e){ filesEl.innerHTML = `<div style="color:var(--rust);font-size:12px;">Failed to load: ${esc(e.message)}</div>`; }
+}
+
+async function logoutOneDrive(){
+  if(!confirm('Disconnect OneDrive?')) return;
+  try{
+    await apiFetch('/api/onedrive/logout', { method:'POST' });
+    showToast('OneDrive disconnected');
+    checkOneDriveStatus();
+  }catch(e){ showToast('Failed to disconnect'); }
 }
 
 /* ---------------- init ---------------- */
