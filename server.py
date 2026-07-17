@@ -146,7 +146,7 @@ async def create_feature(body: dict):
         raise HTTPException(status_code=400, detail="Name required")
     import uuid
     feature_id = f"feat_{uuid.uuid4().hex[:8]}"
-    db.create_feature({"id": feature_id, "name": name, "release_date": body.get("release_date", "")})
+    db.create_feature({"id": feature_id, "name": name, "release_date": body.get("release_date", ""), "comments": body.get("comments", "")})
     return {"id": feature_id, "message": f"Feature '{name}' created"}
 
 
@@ -155,7 +155,7 @@ async def update_feature(feature_id: str, body: dict):
     name = body.get("name", "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="Name required")
-    db.update_feature(feature_id, {"name": name, "release_date": body.get("release_date", "")})
+    db.update_feature(feature_id, {"name": name, "release_date": body.get("release_date", ""), "comments": body.get("comments", "")})
     return {"message": f"Feature '{name}' updated"}
 
 

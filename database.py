@@ -51,6 +51,7 @@ def init_db():
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             release_date TEXT DEFAULT '',
+            comments TEXT DEFAULT '',
             created_at TEXT DEFAULT ''
         )""")
         cur.execute("""
@@ -93,6 +94,7 @@ def init_db():
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             release_date TEXT DEFAULT '',
+            comments TEXT DEFAULT '',
             created_at TEXT DEFAULT ''
         );
         CREATE TABLE IF NOT EXISTS tasks (
@@ -130,6 +132,12 @@ def init_db():
         # Add feature_id column if missing (migration for existing DBs)
         try:
             conn.execute("ALTER TABLE tasks ADD COLUMN feature_id TEXT DEFAULT ''")
+            conn.commit()
+        except Exception:
+            pass
+        # Add comments column to features if missing
+        try:
+            conn.execute("ALTER TABLE features ADD COLUMN comments TEXT DEFAULT ''")
             conn.commit()
         except Exception:
             pass
@@ -533,12 +541,12 @@ def create_feature(feature_data):
     now = datetime.now().isoformat()
     if DATABASE_URL:
         cur = conn.cursor()
-        cur.execute("INSERT INTO features (id, name, release_date, created_at) VALUES (%s, %s, %s, %s)",
-                    (feature_data['id'], feature_data['name'], feature_data.get('release_date', ''), now))
+        cur.execute("INSERT INTO features (id, name, release_date, comments, created_at) VALUES (%s, %s, %s, %s, %s)",
+                    (feature_data['id'], feature_data['name'], feature_data.get('release_date', ''), feature_data.get('comments', ''), now))
         cur.close()
     else:
-        conn.execute("INSERT INTO features (id, name, release_date, created_at) VALUES (?, ?, ?, ?)",
-                     (feature_data['id'], feature_data['name'], feature_data.get('release_date', ''), now))
+        conn.execute("INSERT INTO features (id, name, release_date, comments, created_at) VALUES (?, ?, ?, ?, ?)",
+                     (feature_data['id'], feature_data['name'], feature_data.get('release_date', ''), feature_data.get('comments', ''), now))
     conn.commit()
     conn.close()
 
@@ -547,12 +555,12 @@ def update_feature(feature_id, feature_data):
     conn = get_connection()
     if DATABASE_URL:
         cur = conn.cursor()
-        cur.execute("UPDATE features SET name=%s, release_date=%s WHERE id=%s",
-                    (feature_data['name'], feature_data.get('release_date', ''), feature_id))
+        cur.execute("UPDATE features SET name=%s, release_date=%s, comments=%s WHERE id=%s",
+                    (feature_data['name'], feature_data.get('release_date', ''), feature_data.get('comments', ''), feature_id))
         cur.close()
     else:
-        conn.execute("UPDATE features SET name=?, release_date=? WHERE id=?",
-                     (feature_data['name'], feature_data.get('release_date', ''), feature_id))
+        conn.execute("UPDATE features SET name=?, release_date=?, comments=? WHERE id=?",
+                     (feature_data['name'], feature_data.get('release_date', ''), feature_data.get('comments', ''), feature_id))
     conn.commit()
     conn.close()
 
