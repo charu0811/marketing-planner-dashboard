@@ -180,6 +180,30 @@
   .timeline-card .progress-fill{height:100%;background:#7C3AED;border-radius:3px;transition:width .3s;}
   .timeline-card .feat-tasks{font-size:10px;color:var(--ink-42);margin-top:6px;}
 
+  /* FEATURE MANAGER INLINE PANEL */
+  .feat-panel{margin-bottom:24px;background:#fff;border:1px solid var(--ink-13);border-radius:12px;overflow:hidden;}
+  .feat-panel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--ink-13);}
+  .feat-panel-head h3{font-family:'Fraunces',serif;font-weight:400;font-size:17px;margin:0;color:var(--charcoal);}
+  .feat-panel-head h3 em{font-style:italic;color:var(--teal);}
+  .feat-panel-body{padding:18px 22px;}
+  .feat-add-form{display:flex;flex-wrap:wrap;gap:10px;padding:14px;border:1px dashed var(--ink-13);border-radius:8px;background:rgba(0,186,178,0.03);margin-bottom:18px;}
+  .feat-add-form input,.feat-add-form textarea{font-family:'Inter',sans-serif;font-size:12px;padding:9px 12px;border:1px solid var(--ink-13);border-radius:6px;outline:none;color:var(--charcoal);background:#fff;}
+  .feat-add-form input:focus,.feat-add-form textarea:focus{border-color:var(--teal);}
+  .feat-add-form textarea{resize:vertical;font-family:'Inter',sans-serif;}
+  .feat-item{border:1px solid var(--ink-13);border-radius:10px;padding:14px 16px;background:var(--card);transition:.15s;border-left:3px solid var(--teal);}
+  .feat-item:hover{border-color:var(--teal-line);box-shadow:0 2px 10px rgba(0,0,0,0.04);}
+  .feat-item-head{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .feat-item-name{font-family:'Fraunces',serif;font-size:14px;flex:1;color:var(--charcoal);}
+  .feat-item-count{font-size:9.5px;color:var(--ink-42);background:var(--ink-13);border-radius:10px;padding:2px 8px;}
+  .feat-item-meta{font-size:11px;color:var(--ink-65);}
+  .feat-item-comments{font-size:11px;color:var(--ink-42);margin-top:4px;font-style:italic;white-space:pre-wrap;}
+  .feat-edit-form{margin-top:10px;}
+  .feat-edit-form .field{margin-bottom:8px;}
+  .feat-edit-form .field label{display:block;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-42);margin-bottom:4px;}
+  .feat-edit-form input,.feat-edit-form textarea{width:100%;font-family:'Inter',sans-serif;font-size:12px;padding:8px 10px;border:1px solid var(--ink-13);border-radius:6px;outline:none;color:var(--charcoal);background:#fff;}
+  .feat-edit-form input:focus,.feat-edit-form textarea:focus{border-color:var(--teal);}
+  .feat-edit-form textarea{resize:vertical;min-height:48px;}
+
   @media(max-width:720px){
     .row2,.row3,.utm-fields{grid-template-columns:1fr;}
     .list-row,.list-head{grid-template-columns:70px 1fr 60px;}
@@ -209,7 +233,7 @@
     <select id="approvalFilter" onchange="onFilterChange()"><option value="">All approvals</option></select>
     <select id="featureFilter" onchange="onFilterChange()"><option value="">All features</option></select>
     <button class="feature-filter-btn" id="featureOnlyBtn" onclick="toggleFeatureOnly()">🚀 Features only</button>
-    <button class="feature-filter-btn" id="manageFeatureInlineBtn" onclick="toggleInlineFeaturePanel()" style="background:#f3e8ff;border-color:#c084fc;">⚙️ Manage Features</button>
+    <button class="feature-filter-btn" id="manageFeatureInlineBtn" onclick="toggleInlineFeaturePanel()">⚙️ Manage Features</button>
     <div id="platformFilterChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
     <button class="btn-text" onclick="clearFilters()">Clear filters</button>
     <div class="spacer"></div>
@@ -220,18 +244,20 @@
     <button class="btn btn-primary" onclick="openTaskModal()">+ New task</button>
   </div>
 
-  <div id="inlineFeaturePanel" style="display:none;margin:0 0 20px;padding:18px 20px;border-radius:12px;background:#faf5ff;border:1px solid #e9d5ff;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <h3 style="margin:0;font-family:'Fraunces',serif;font-size:16px;color:#7C3AED;">⚙️ Feature Manager</h3>
-      <button class="btn-text" style="font-size:11px;color:var(--ink-42);" onclick="toggleInlineFeaturePanel()">Close ✕</button>
+  <div id="inlineFeaturePanel" class="feat-panel" style="display:none;">
+    <div class="feat-panel-head">
+      <h3>Feature <em>Manager</em></h3>
+      <button class="btn-text" onclick="toggleInlineFeaturePanel()">✕ Close</button>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:#fff;border:1px solid #e9d5ff;">
-      <input type="text" id="inlineNewFeatName" placeholder="Feature name" style="flex:1;min-width:140px;font-size:12px;padding:8px 10px;border:1px solid var(--ink-13);border-radius:6px;">
-      <input type="date" id="inlineNewFeatDate" style="font-size:12px;padding:8px 10px;border:1px solid var(--ink-13);border-radius:6px;">
-      <textarea id="inlineNewFeatComments" placeholder="Comments (optional)" rows="1" style="flex-basis:100%;font-size:11px;padding:8px 10px;border:1px solid var(--ink-13);border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
-      <button class="btn btn-primary" style="padding:8px 14px;font-size:11px;margin-left:auto;" onclick="addFeatureInline()">+ Add</button>
+    <div class="feat-panel-body">
+      <div class="feat-add-form">
+        <input type="text" id="inlineNewFeatName" placeholder="Feature name" style="flex:1;min-width:160px;">
+        <input type="date" id="inlineNewFeatDate">
+        <textarea id="inlineNewFeatComments" placeholder="Add comments or notes..." rows="1" style="flex-basis:100%;"></textarea>
+        <button class="btn btn-primary" style="margin-left:auto;" onclick="addFeatureInline()">+ Add feature</button>
+      </div>
+      <div id="inlineFeatureList" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
-    <div id="inlineFeatureList" style="display:flex;flex-direction:column;gap:10px;max-height:350px;overflow-y:auto;"></div>
   </div>
 
   <div id="featureTimeline"></div>
@@ -357,15 +383,15 @@
 <div class="overlay" id="featureModalOverlay">
   <div class="modal" style="max-width:580px;">
     <div class="modal-head">
-      <h2>Manage Features</h2>
+      <h2>Feature <em style="font-style:italic;color:var(--teal);">Manager</em></h2>
       <button class="modal-close" onclick="closeFeatureManager()">✕</button>
     </div>
     <div class="modal-body">
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding:12px;border:1px solid var(--ink-13);border-radius:8px;background:var(--sand);">
-        <input type="text" id="newFeatureName" placeholder="Feature name" style="flex:1;min-width:140px;font-size:13px;padding:9px 12px;border:1px solid var(--ink-13);border-radius:6px;">
-        <input type="date" id="newFeatureDate" style="font-size:13px;padding:9px 12px;border:1px solid var(--ink-13);border-radius:6px;">
-        <textarea id="newFeatureComments" placeholder="Comments (optional)" rows="2" style="width:100%;font-size:12px;padding:9px 12px;border:1px solid var(--ink-13);border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
-        <button class="btn btn-primary" style="padding:9px 14px;font-size:11px;margin-left:auto;" onclick="addFeature()">+ Add Feature</button>
+      <div class="feat-add-form">
+        <input type="text" id="newFeatureName" placeholder="Feature name" style="flex:1;min-width:140px;">
+        <input type="date" id="newFeatureDate">
+        <textarea id="newFeatureComments" placeholder="Add comments or notes..." rows="2" style="flex-basis:100%;"></textarea>
+        <button class="btn btn-primary" style="margin-left:auto;" onclick="addFeature()">+ Add feature</button>
       </div>
       <div id="featureList" style="display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;"></div>
     </div>
@@ -1051,41 +1077,33 @@ function closeFeatureManager(){
 }
 function renderFeatureManagerList(){
   const box = document.getElementById('featureList');
-  if(!FEATURES.length){ box.innerHTML='<div style="text-align:center;color:var(--ink-42);font-size:12px;padding:20px;">No features yet. Add one above.</div>'; return; }
-  box.innerHTML = FEATURES.map(f => `
-    <div style="padding:12px 14px;border:1px solid var(--ink-13);border-radius:8px;background:#fff;" data-feat-id="${f.id}">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <div style="flex:1;">
-          <div style="font-family:'Fraunces',serif;font-size:13.5px;font-weight:600;">${esc(f.name)}</div>
-          <span style="font-size:10px;color:var(--ink-42);">${state.tasks.filter(t=>t.feature_id===f.id).length} tasks linked</span>
-        </div>
-        <button class="btn-text" style="color:var(--teal);font-size:11px;" onclick="toggleFeatureEdit('${f.id}')">Edit</button>
-        <button class="btn-text" style="color:var(--rust);font-size:11px;" onclick="deleteFeatureConfirm('${f.id}')">Delete</button>
+  if(!box) return;
+  if(!FEATURES.length){ box.innerHTML='<div class="empty-state" style="padding:24px 10px;"><h3 style="font-size:16px;">No features yet</h3><p style="font-size:12px;">Add your first feature above.</p></div>'; return; }
+  box.innerHTML = FEATURES.map(f => {
+    const taskCount = state.tasks.filter(t=>t.feature_id===f.id).length;
+    return `
+    <div class="feat-item">
+      <div class="feat-item-head">
+        <div class="feat-item-name">${esc(f.name)}</div>
+        <span class="feat-item-count">${taskCount} task${taskCount!==1?'s':''}</span>
+        <button class="btn-text" style="color:var(--teal);" onclick="toggleFeatureEdit('${f.id}')">Edit</button>
+        <button class="btn-text" style="color:var(--rust);" onclick="deleteFeatureConfirm('${f.id}')">Delete</button>
       </div>
-      <div id="feat-view-${f.id}" style="font-size:11.5px;color:var(--ink-60);">
-        <div><strong>Release:</strong> ${f.releaseDate ? fmtDate(f.releaseDate) : '<em>Not set</em>'}</div>
-        ${f.comments ? '<div style="margin-top:4px;"><strong>Comments:</strong> '+esc(f.comments)+'</div>' : ''}
+      <div id="feat-view-${f.id}" class="feat-item-meta">
+        ${f.releaseDate ? '📅 Release: '+fmtDate(f.releaseDate) : 'No release date set'}
+        ${f.comments ? '<div class="feat-item-comments">💬 '+esc(f.comments)+'</div>' : ''}
       </div>
-      <div id="feat-edit-${f.id}" style="display:none;margin-top:8px;">
-        <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
-          <label style="font-size:11px;color:var(--ink-60);min-width:50px;">Name</label>
-          <input type="text" id="feat-name-${f.id}" value="${esc(f.name)}" style="flex:1;font-size:12px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;">
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
-          <label style="font-size:11px;color:var(--ink-60);min-width:50px;">Release</label>
-          <input type="date" id="feat-date-${f.id}" value="${f.releaseDate||''}" style="flex:1;font-size:12px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;">
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;">
-          <label style="font-size:11px;color:var(--ink-60);min-width:50px;padding-top:8px;">Comments</label>
-          <textarea id="feat-comments-${f.id}" rows="3" style="flex:1;font-size:12px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;resize:vertical;font-family:inherit;">${esc(f.comments||'')}</textarea>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;" onclick="toggleFeatureEdit('${f.id}')">Cancel</button>
-          <button class="btn btn-primary" style="font-size:11px;padding:6px 12px;" onclick="saveFeatureEdit('${f.id}')">Save</button>
+      <div id="feat-edit-${f.id}" class="feat-edit-form" style="display:none;">
+        <div class="field"><label>Name</label><input type="text" id="feat-name-${f.id}" value="${esc(f.name)}"></div>
+        <div class="field"><label>Release date</label><input type="date" id="feat-date-${f.id}" value="${f.releaseDate||''}"></div>
+        <div class="field"><label>Comments</label><textarea id="feat-comments-${f.id}" rows="2">${esc(f.comments||'')}</textarea></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+          <button class="btn btn-ghost" style="font-size:11px;padding:7px 14px;" onclick="toggleFeatureEdit('${f.id}')">Cancel</button>
+          <button class="btn btn-primary" style="font-size:11px;padding:7px 14px;" onclick="saveFeatureEdit('${f.id}')">Save changes</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 async function addFeature(){
   const name = document.getElementById('newFeatureName').value.trim();
@@ -1100,9 +1118,10 @@ async function addFeature(){
     document.getElementById('newFeatureComments').value='';
     populateStaticSelects();
     renderFeatureManagerList();
+    renderInlineFeatureList();
     renderFeatureTimeline();
-    showToast('Feature added');
-  }catch(e){ showToast('Failed to add feature'); }
+    showToast('Feature "' + name + '" added');
+  }catch(e){ console.error('addFeature', e); showToast('Failed to add feature: ' + e.message); }
 }
 function toggleFeatureEdit(featId){
   const editDiv = document.getElementById('feat-edit-'+featId);
@@ -1132,7 +1151,7 @@ async function saveFeatureEdit(featId){
     renderInlineFeatureList();
     renderFeatureTimeline();
     showToast('Feature updated');
-  }catch(e){ showToast('Failed to update feature'); }
+  }catch(e){ console.error('saveFeatureEdit', e); showToast('Failed to update: ' + e.message); }
 }
 async function deleteFeatureConfirm(featId){
   if(!confirm('Delete this feature? Tasks will be unlinked but not deleted.')) return;
@@ -1143,9 +1162,10 @@ async function deleteFeatureConfirm(featId){
     populateStaticSelects();
     renderFeatureManagerList();
     renderInlineFeatureList();
+    renderFeatureTimeline();
     render();
     showToast('Feature deleted');
-  }catch(e){ showToast('Failed to delete'); }
+  }catch(e){ console.error('deleteFeature', e); showToast('Failed to delete: ' + e.message); }
 }
 
 /* --- Inline Feature Panel --- */
@@ -1161,40 +1181,42 @@ function toggleInlineFeaturePanel(){
 function renderInlineFeatureList(){
   const box = document.getElementById('inlineFeatureList');
   if(!box) return;
-  if(!FEATURES.length){ box.innerHTML='<div style="text-align:center;color:var(--ink-42);font-size:12px;padding:16px;">No features yet. Add one above.</div>'; return; }
-  box.innerHTML = FEATURES.map(f => `
-    <div style="padding:12px 14px;border:1px solid #e9d5ff;border-radius:8px;background:#fff;" data-feat-id="${f.id}">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-        <div style="flex:1;">
-          <span style="font-family:'Fraunces',serif;font-size:13px;font-weight:600;">${esc(f.name)}</span>
-          <span style="font-size:10px;color:var(--ink-42);margin-left:8px;">${state.tasks.filter(t=>t.feature_id===f.id).length} tasks</span>
-        </div>
-        <button class="btn-text" style="color:#7C3AED;font-size:11px;" onclick="toggleInlineEdit('${f.id}')">Edit</button>
-        <button class="btn-text" style="color:var(--rust);font-size:11px;" onclick="deleteFeatureConfirm('${f.id}')">Delete</button>
+  if(!FEATURES.length){ box.innerHTML='<div class="empty-state" style="padding:30px 10px;"><h3 style="font-size:16px;">No features yet</h3><p style="font-size:12px;">Add your first feature above to start tracking releases.</p></div>'; return; }
+  box.innerHTML = FEATURES.map(f => {
+    const taskCount = state.tasks.filter(t=>t.feature_id===f.id).length;
+    const doneTasks = state.tasks.filter(t=>t.feature_id===f.id && t.status==='Done').length;
+    const pct = taskCount ? Math.round((doneTasks/taskCount)*100) : 0;
+    const today = new Date().toISOString().slice(0,10);
+    const isReleased = f.releaseDate && f.releaseDate <= today;
+    return `
+    <div class="feat-item">
+      <div class="feat-item-head">
+        <div class="feat-item-name">${esc(f.name)}</div>
+        <span class="feat-item-count">${taskCount} task${taskCount!==1?'s':''}</span>
+        <button class="btn-text" style="color:var(--teal);" onclick="toggleInlineEdit('${f.id}')">Edit</button>
+        <button class="btn-text" style="color:var(--rust);" onclick="deleteFeatureConfirm('${f.id}')">Delete</button>
       </div>
-      <div id="inline-view-${f.id}" style="font-size:11px;color:var(--ink-60);">
-        <span><strong>Release:</strong> ${f.releaseDate ? fmtDate(f.releaseDate) : 'Not set'}</span>
-        ${f.comments ? '<div style="margin-top:3px;"><strong>Comments:</strong> '+esc(f.comments)+'</div>' : ''}
+      <div class="feat-item-meta">
+        ${f.releaseDate ? (isReleased ? '✅ Released '+fmtDate(f.releaseDate) : '📅 Release: '+fmtDate(f.releaseDate)) : 'No release date set'}
+        <span style="margin-left:12px;">Progress: ${pct}% (${doneTasks}/${taskCount})</span>
       </div>
-      <div id="inline-edit-${f.id}" style="display:none;margin-top:8px;">
-        <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-          <input type="text" id="il-name-${f.id}" value="${esc(f.name)}" placeholder="Name" style="flex:1;min-width:120px;font-size:12px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;">
-          <input type="date" id="il-date-${f.id}" value="${f.releaseDate||''}" style="font-size:12px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;">
-        </div>
-        <textarea id="il-comments-${f.id}" rows="2" placeholder="Comments" style="width:100%;font-size:11px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:5px;resize:vertical;font-family:inherit;margin-bottom:8px;">${esc(f.comments||'')}</textarea>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="toggleInlineEdit('${f.id}')">Cancel</button>
-          <button class="btn btn-primary" style="font-size:11px;padding:5px 10px;" onclick="saveInlineEdit('${f.id}')">Save</button>
+      ${f.comments ? '<div class="feat-item-comments">💬 '+esc(f.comments)+'</div>' : ''}
+      <div id="inline-edit-${f.id}" class="feat-edit-form" style="display:none;">
+        <div class="field"><label>Name</label><input type="text" id="il-name-${f.id}" value="${esc(f.name)}"></div>
+        <div class="field"><label>Release date</label><input type="date" id="il-date-${f.id}" value="${f.releaseDate||''}"></div>
+        <div class="field"><label>Comments</label><textarea id="il-comments-${f.id}" rows="2">${esc(f.comments||'')}</textarea></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+          <button class="btn btn-ghost" style="font-size:11px;padding:7px 14px;" onclick="toggleInlineEdit('${f.id}')">Cancel</button>
+          <button class="btn btn-primary" style="font-size:11px;padding:7px 14px;" onclick="saveInlineEdit('${f.id}')">Save changes</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 function toggleInlineEdit(featId){
   const editDiv = document.getElementById('inline-edit-'+featId);
-  const viewDiv = document.getElementById('inline-view-'+featId);
-  if(editDiv.style.display==='none'){ editDiv.style.display='block'; viewDiv.style.display='none'; }
-  else { editDiv.style.display='none'; viewDiv.style.display='block'; }
+  if(!editDiv) return;
+  editDiv.style.display = editDiv.style.display==='none' ? 'block' : 'none';
 }
 async function saveInlineEdit(featId){
   const feat = FEATURES.find(f=>f.id===featId);
@@ -1211,7 +1233,7 @@ async function saveInlineEdit(featId){
     renderFeatureManagerList();
     renderFeatureTimeline();
     showToast('Feature updated');
-  }catch(e){ showToast('Failed to update feature'); }
+  }catch(e){ console.error('saveInlineEdit', e); showToast('Failed to update: ' + e.message); }
 }
 async function addFeatureInline(){
   const name = document.getElementById('inlineNewFeatName').value.trim();
@@ -1228,8 +1250,8 @@ async function addFeatureInline(){
     renderInlineFeatureList();
     renderFeatureManagerList();
     renderFeatureTimeline();
-    showToast('Feature added');
-  }catch(e){ console.error('addFeatureInline error:', e); showToast('Failed to add feature: ' + e.message); }
+    showToast('Feature "' + name + '" added');
+  }catch(e){ console.error('addFeatureInline', e); showToast('Failed to add feature: ' + e.message); }
 }
 
 /* ---------------- init ---------------- */
