@@ -154,10 +154,37 @@
   .lightbox.open{display:flex;}
   .lightbox img,.lightbox video{max-width:90vw;max-height:88vh;border-radius:6px;}
   .lightbox .lb-close{position:absolute;top:20px;right:26px;color:#fff;font-size:26px;cursor:pointer;background:none;border:none;}
+
+  /* FEATURE HIGHLIGHT */
+  .card.feature-card{border-left:3px solid #7C3AED;background:linear-gradient(135deg,rgba(124,58,237,0.04),var(--card));}
+  .card.feature-card:hover{border-color:#7C3AED;}
+  .list-row.feature-row{border-left:3px solid #7C3AED;background:linear-gradient(135deg,rgba(124,58,237,0.04),var(--card));}
+  .feature-badge{font-size:8.5px;font-weight:600;padding:2px 7px;border-radius:8px;background:rgba(124,58,237,0.12);color:#7C3AED;text-transform:uppercase;letter-spacing:.04em;margin-left:6px;vertical-align:middle;}
+
+  /* FEATURE FILTER */
+  .feature-filter-btn{font-size:11px;padding:7px 12px;border-radius:20px;border:1px solid rgba(124,58,237,0.3);background:rgba(124,58,237,0.06);cursor:pointer;color:#7C3AED;user-select:none;transition:.15s;font-weight:500;}
+  .feature-filter-btn:hover{border-color:#7C3AED;background:rgba(124,58,237,0.12);}
+  .feature-filter-btn.active{background:#7C3AED;color:#fff;border-color:#7C3AED;}
+
+  /* FEATURE TIMELINE SECTION */
+  .feature-timeline{margin-bottom:28px;background:#fff;border:1px solid var(--ink-13);border-radius:12px;padding:20px 24px;overflow:hidden;}
+  .feature-timeline h3{font-family:'Fraunces',serif;font-weight:400;font-size:17px;margin:0 0 16px;color:var(--charcoal);}
+  .feature-timeline h3 em{font-style:italic;color:#7C3AED;}
+  .timeline-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+  .timeline-card{border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:14px 16px;background:linear-gradient(135deg,rgba(124,58,237,0.03),#fff);transition:.15s;}
+  .timeline-card:hover{border-color:#7C3AED;box-shadow:0 4px 16px rgba(124,58,237,0.08);}
+  .timeline-card .feat-name{font-family:'Fraunces',serif;font-size:14.5px;color:var(--charcoal);margin-bottom:6px;}
+  .timeline-card .feat-date{font-size:11px;color:#7C3AED;font-weight:600;margin-bottom:8px;}
+  .timeline-card .feat-progress{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--ink-65);}
+  .timeline-card .progress-bar{flex:1;height:5px;background:rgba(124,58,237,0.1);border-radius:3px;overflow:hidden;}
+  .timeline-card .progress-fill{height:100%;background:#7C3AED;border-radius:3px;transition:width .3s;}
+  .timeline-card .feat-tasks{font-size:10px;color:var(--ink-42);margin-top:6px;}
+
   @media(max-width:720px){
     .row2,.row3,.utm-fields{grid-template-columns:1fr;}
     .list-row,.list-head{grid-template-columns:70px 1fr 60px;}
     .list-row .lr-plat,.list-row .lr-owner,.list-head span:nth-child(3),.list-head span:nth-child(5){display:none;}
+    .timeline-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -180,6 +207,8 @@
     <select id="ownerFilter" onchange="onFilterChange()"><option value="">All owners</option></select>
     <select id="statusFilter" onchange="onFilterChange()"><option value="">All statuses</option></select>
     <select id="approvalFilter" onchange="onFilterChange()"><option value="">All approvals</option></select>
+    <select id="featureFilter" onchange="onFilterChange()"><option value="">All features</option></select>
+    <button class="feature-filter-btn" id="featureOnlyBtn" onclick="toggleFeatureOnly()">🚀 Features only</button>
     <div id="platformFilterChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
     <button class="btn-text" onclick="clearFilters()">Clear filters</button>
     <div class="spacer"></div>
@@ -190,6 +219,7 @@
     <button class="btn btn-primary" onclick="openTaskModal()">+ New task</button>
   </div>
 
+  <div id="featureTimeline"></div>
   <div id="mainArea"></div>
 </div>
 
@@ -309,6 +339,28 @@ const TYPE_DEFAULT = ['Content','Campaign','Carousel','REEL','Teaser Video','Int
 const STATUS_OPTIONS = ['To Do','In Progress','Done','Carryforward','Blocked'];
 const APPROVAL_OPTIONS = ['Draft','To be approved','In Progress','Approved','Rejected'];
 
+/* --- FEATURE DEFINITIONS --- */
+const FEATURES = [
+  { id: 'transaction_module', name: 'Transaction Module', keywords: ['transaction module'], releaseDate: '2026-07-17' },
+  { id: 'research_360', name: 'Research 360', keywords: ['research 360'], releaseDate: '2026-07-01' },
+  { id: 'mf_brokerage', name: 'MF Brokerage', keywords: ['mf brokerage', 'mf brokerage module'], releaseDate: '2026-07-22' },
+  { id: 'portfolio_iq', name: 'Portfolio IQ', keywords: ['portfolio iq'], releaseDate: '2026-07-13' },
+  { id: 'daily_digest', name: 'Daily Digest', keywords: ['daily digest'], releaseDate: '2026-07-10' },
+  { id: 'client_churn', name: 'Client Churn Predictor', keywords: ['client churn', 'churn predictor'], releaseDate: '2026-07-24' },
+  { id: 'indore_launch', name: 'Indore Launch', keywords: ['indore launch'], releaseDate: '2026-07-10' },
+  { id: 'onboarding_form', name: 'Onboarding Form', keywords: ['onboarding form'], releaseDate: '2026-07-15' },
+];
+
+function getTaskFeature(task) {
+  const content = (task.content || '').toLowerCase();
+  for (const feat of FEATURES) {
+    if (feat.keywords.some(kw => content.includes(kw))) return feat;
+  }
+  return null;
+}
+
+function isFeatureTask(task) { return getTaskFeature(task) !== null; }
+
 let state = {
   tasks: [],
   customPlatforms: [],
@@ -318,7 +370,7 @@ let state = {
   modalPlatforms: [],
   modalAssets: [], // {id,name,type,size}
   weekFilter: null, // Monday date string 'YYYY-MM-DD', or null = all weeks
-  filters: { search:'', owner:'', status:'', approval:'', platforms:[] }
+  filters: { search:'', owner:'', status:'', approval:'', platforms:[], feature:'', featureOnly:false }
 };
 
 /* ---------------- storage (SQLite via API) ---------------- */
@@ -409,9 +461,11 @@ function populateStaticSelects(){
   const ownerFilter = document.getElementById('ownerFilter');
   const statusFilter = document.getElementById('statusFilter');
   const approvalFilter = document.getElementById('approvalFilter');
+  const featureFilter = document.getElementById('featureFilter');
   ownerFilter.innerHTML = '<option value="">All owners</option>' + allOwners().map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
   statusFilter.innerHTML = '<option value="">All statuses</option>' + STATUS_OPTIONS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
   approvalFilter.innerHTML = '<option value="">All approvals</option>' + APPROVAL_OPTIONS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  featureFilter.innerHTML = '<option value="">All features</option>' + FEATURES.map(f=>`<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('');
 
   document.getElementById('typeOptions').innerHTML = TYPE_DEFAULT.map(t=>`<option value="${esc(t)}">`).join('');
   document.getElementById('f_owner').innerHTML = allOwners().map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
@@ -429,6 +483,12 @@ function onFilterChange(){
   state.filters.owner = document.getElementById('ownerFilter').value;
   state.filters.status = document.getElementById('statusFilter').value;
   state.filters.approval = document.getElementById('approvalFilter').value;
+  state.filters.feature = document.getElementById('featureFilter').value;
+  renderMain();
+}
+function toggleFeatureOnly(){
+  state.filters.featureOnly = !state.filters.featureOnly;
+  document.getElementById('featureOnlyBtn').classList.toggle('active', state.filters.featureOnly);
   renderMain();
 }
 function togglePlatformFilter(p){
@@ -440,11 +500,13 @@ function togglePlatformFilter(p){
   renderMain();
 }
 function clearFilters(){
-  state.filters = { search:'', owner:'', status:'', approval:'', platforms:[] };
+  state.filters = { search:'', owner:'', status:'', approval:'', platforms:[], feature:'', featureOnly:false };
   document.getElementById('searchInput').value='';
   document.getElementById('ownerFilter').value='';
   document.getElementById('statusFilter').value='';
   document.getElementById('approvalFilter').value='';
+  document.getElementById('featureFilter').value='';
+  document.getElementById('featureOnlyBtn').classList.remove('active');
   document.querySelectorAll('#platformFilterChips .chip-toggle').forEach(c=>c.classList.remove('active'));
   renderMain();
 }
@@ -453,6 +515,11 @@ function filteredTasks(){
     if(state.weekFilter){
       if(!t.date) return false;
       if(weekKeyFromDate(t.date) !== state.weekFilter) return false;
+    }
+    if(state.filters.featureOnly && !isFeatureTask(t)) return false;
+    if(state.filters.feature){
+      const feat = getTaskFeature(t);
+      if(!feat || feat.id !== state.filters.feature) return false;
     }
     if(state.filters.search){
       const hay = (t.content+' '+t.comment+' '+t.type).toLowerCase();
@@ -477,6 +544,7 @@ function setView(v){
 function render(){
   renderStats();
   renderWeekNav();
+  renderFeatureTimeline();
   renderMain();
 }
 
@@ -516,9 +584,12 @@ function renderMain(){
 
 function cardHtml(t){
   const assetCount = (t.assets||[]).length;
+  const feat = getTaskFeature(t);
+  const featureClass = feat ? ' feature-card' : '';
+  const featureBadge = feat ? `<span class="feature-badge">${esc(feat.name)}</span>` : '';
   return `
-  <div class="card" draggable="true" data-id="${t.id}" onclick="openTaskModal('${t.id}')">
-    <div class="ctitle">${esc(t.content) || '(untitled task)'}</div>
+  <div class="card${featureClass}" draggable="true" data-id="${t.id}" onclick="openTaskModal('${t.id}')">
+    <div class="ctitle">${esc(t.content) || '(untitled task)'}${featureBadge}</div>
     <div class="cmeta"><span>${esc(t.type||'—')}</span><span>${fmtDate(t.date)}${t.date?', '+dayName(t.date):''}</span></div>
     <div class="tags">${(t.platforms||[]).map(p=>`<span class="tag">${esc(p)}</span>`).join('') || '<span class="tag" style="opacity:.4">no tag</span>'}</div>
     <div class="card-foot">
@@ -553,17 +624,21 @@ function listHtml(list){
     <div class="week-block">
       ${state.weekFilter ? '' : `<div class="week-title">${esc(wk)}</div>`}
       <div class="list-head"><span>Date</span><span>Task</span><span class="lr-plat">Platforms</span><span>Status</span><span class="lr-owner">Owner</span><span>Approval</span><span></span></div>
-      ${groups[wk].map(t=>`
-        <div class="list-row" onclick="openTaskModal('${t.id}')">
+      ${groups[wk].map(t=>{
+        const feat = getTaskFeature(t);
+        const fClass = feat ? ' feature-row' : '';
+        const fBadge = feat ? `<span class="feature-badge">${esc(feat.name)}</span>` : '';
+        return `
+        <div class="list-row${fClass}" onclick="openTaskModal('${t.id}')">
           <div class="lr-date">${t.date?fmtDate(t.date):'—'}<b>${dayName(t.date)}</b></div>
-          <div class="lr-title">${esc(t.content)||'(untitled)'}<span class="type">${esc(t.type||'')}</span></div>
+          <div class="lr-title">${esc(t.content)||'(untitled)'}${fBadge}<span class="type">${esc(t.type||'')}</span></div>
           <div class="lr-plat">${(t.platforms||[]).slice(0,2).map(p=>`<span class="tag">${esc(p)}</span>`).join(' ')}${(t.platforms||[]).length>2?` +${t.platforms.length-2}`:''}</div>
           <div>${esc(t.status||'To Do')}</div>
           <div class="lr-owner"><div class="owner-badge" style="display:inline-flex;">${initials(t.owner)}</div></div>
           <div><span class="approval-pill ${apClass(t.approval)}">${esc(t.approval||'Draft')}</span></div>
           <div>${(t.assets||[]).length?'📎':''}</div>
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>
   `).join('');
 }
@@ -624,6 +699,61 @@ function renderWeekNav(){
     <button class="icon-btn" onclick="shiftWeek(1)" title="Next week">›</button>
     <button class="btn-text" onclick="setAllWeeks()">Show all weeks</button>
   `;
+}
+
+/* ---------------- feature release timeline ---------------- */
+function renderFeatureTimeline(){
+  const el = document.getElementById('featureTimeline');
+  if(!el) return;
+
+  // Build stats for each feature
+  const featureData = FEATURES.map(feat => {
+    const tasks = state.tasks.filter(t => {
+      const f = getTaskFeature(t);
+      return f && f.id === feat.id;
+    });
+    const total = tasks.length;
+    const done = tasks.filter(t => t.status === 'Done').length;
+    const inProgress = tasks.filter(t => t.status === 'In Progress').length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    // Find earliest task date as start
+    const dates = tasks.map(t => t.date).filter(Boolean).sort();
+    const startDate = dates[0] || feat.releaseDate;
+    return { ...feat, tasks, total, done, inProgress, pct, startDate };
+  }).filter(f => f.total > 0).sort((a,b) => (a.releaseDate||'').localeCompare(b.releaseDate||''));
+
+  if(!featureData.length){ el.innerHTML=''; return; }
+
+  const today = new Date().toISOString().slice(0,10);
+
+  el.innerHTML = `
+    <div class="feature-timeline">
+      <h3>🚀 Feature <em>Release Timeline</em></h3>
+      <div class="timeline-grid">
+        ${featureData.map(f => {
+          const isReleased = f.releaseDate <= today;
+          const relLabel = isReleased ? '✅ Released' : `📅 ${fmtDate(f.releaseDate)}`;
+          const statusColor = isReleased ? 'color:#10B981' : f.pct >= 50 ? 'color:#7C3AED' : 'color:var(--amber)';
+          return `
+          <div class="timeline-card" onclick="filterByFeature('${f.id}')">
+            <div class="feat-name">${esc(f.name)}</div>
+            <div class="feat-date" style="${statusColor}">${relLabel}</div>
+            <div class="feat-progress">
+              <div class="progress-bar"><div class="progress-fill" style="width:${f.pct}%"></div></div>
+              <span>${f.pct}%</span>
+            </div>
+            <div class="feat-tasks">${f.done}/${f.total} tasks done · ${f.inProgress} in progress</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function filterByFeature(featId){
+  state.filters.feature = state.filters.feature === featId ? '' : featId;
+  document.getElementById('featureFilter').value = state.filters.feature;
+  renderMain();
 }
 
 /* ---------------- drag & drop ---------------- */
@@ -692,6 +822,12 @@ function toggleModalPlatform(p){
   const i = state.modalPlatforms.indexOf(p);
   if(i>-1) state.modalPlatforms.splice(i,1); else state.modalPlatforms.push(p);
   renderPlatformPicker();
+}
+async function saveCustomTags(){
+  // Persist custom platforms to server
+  for(const p of state.customPlatforms){
+    try{ await apiFetch('/api/platforms', { method:'POST', body: JSON.stringify({name:p}) }); }catch(e){}
+  }
 }
 async function addCustomPlatform(){
   const input = document.getElementById('newPlatformInput');
