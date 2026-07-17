@@ -239,6 +239,7 @@
     <select id="approvalFilter" onchange="onFilterChange()"><option value="">All approvals</option></select>
     <select id="featureFilter" onchange="onFilterChange()"><option value="">All features</option></select>
     <button class="chip-toggle" id="featureOnlyBtn" onclick="toggleFeatureOnly()">Features only</button>
+    <button class="chip-toggle" id="showReleasedBtn" onclick="toggleShowReleased()">Released tasks</button>
     <button class="chip-toggle" id="manageFeatureInlineBtn" onclick="toggleInlineFeaturePanel()">Manage Features</button>
     <button class="chip-toggle" id="timelineToggleBtn" onclick="toggleTimeline()">Timeline</button>
     <div id="platformFilterChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
@@ -455,7 +456,7 @@ let state = {
   modalPlatforms: [],
   modalAssets: [], // {id,name,type,size}
   weekFilter: null, // Monday date string 'YYYY-MM-DD', or null = all weeks
-  filters: { search:'', owner:'', status:'', approval:'', platforms:[], feature:'', featureOnly:false }
+  filters: { search:'', owner:'', status:'', approval:'', platforms:[], feature:'', featureOnly:false, showReleased:false }
 };
 
 /* ---------------- storage (SQLite via API) ---------------- */
@@ -597,6 +598,11 @@ function toggleFeatureOnly(){
   document.getElementById('featureOnlyBtn').classList.toggle('active', state.filters.featureOnly);
   renderMain();
 }
+function toggleShowReleased(){
+  state.filters.showReleased = !state.filters.showReleased;
+  document.getElementById('showReleasedBtn').classList.toggle('active', state.filters.showReleased);
+  renderMain();
+}
 function togglePlatformFilter(p){
   const i = state.filters.platforms.indexOf(p);
   if(i>-1) state.filters.platforms.splice(i,1); else state.filters.platforms.push(p);
@@ -606,21 +612,28 @@ function togglePlatformFilter(p){
   renderMain();
 }
 function clearFilters(){
-  state.filters = { search:'', owner:'', status:'', approval:'', platforms:[], feature:'', featureOnly:false };
+  state.filters = { search:'', owner:'', status:'', approval:'', platforms:[], feature:'', featureOnly:false, showReleased:false };
   document.getElementById('searchInput').value='';
   document.getElementById('ownerFilter').value='';
   document.getElementById('statusFilter').value='';
   document.getElementById('approvalFilter').value='';
   document.getElementById('featureFilter').value='';
   document.getElementById('featureOnlyBtn').classList.remove('active');
+  document.getElementById('showReleasedBtn').classList.remove('active');
   document.querySelectorAll('#platformFilterChips .chip-toggle').forEach(c=>c.classList.remove('active'));
   renderMain();
 }
 function filteredTasks(){
+  const today = new Date().toISOString().slice(0,10);
   return state.tasks.filter(t=>{
     if(state.weekFilter){
       if(!t.date) return false;
       if(weekKeyFromDate(t.date) !== state.weekFilter) return false;
+    }
+    // Hide tasks from released features unless showReleased is on
+    if(!state.filters.showReleased && t.feature_id){
+      const feat = FEATURES.find(f=>f.id===t.feature_id);
+      if(feat && feat.releaseDate && feat.releaseDate <= today) return false;
     }
     if(state.filters.featureOnly && !t.feature_id) return false;
     if(state.filters.feature){
