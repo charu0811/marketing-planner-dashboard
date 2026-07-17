@@ -268,6 +268,15 @@
           <select id="f_approval"></select>
         </div>
       </div>
+      <div class="row2">
+        <div class="field">
+          <label>Feature</label>
+          <select id="f_feature"></select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button class="btn btn-ghost" style="font-size:11px;padding:8px 14px;" onclick="openFeatureManager()">⚙️ Manage Features</button>
+        </div>
+      </div>
       <div class="field">
         <label>Comment</label>
         <textarea id="f_comment" placeholder="Notes, blockers, context..."></textarea>
@@ -329,6 +338,24 @@
   <div id="lightboxContent"></div>
 </div>
 
+<!-- FEATURE MANAGER MODAL -->
+<div class="overlay" id="featureModalOverlay">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head">
+      <h2>Manage Features</h2>
+      <button class="modal-close" onclick="closeFeatureManager()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <input type="text" id="newFeatureName" placeholder="Feature name" style="flex:1;font-size:13px;padding:9px 12px;border:1px solid var(--ink-13);border-radius:6px;">
+        <input type="date" id="newFeatureDate" style="font-size:13px;padding:9px 12px;border:1px solid var(--ink-13);border-radius:6px;">
+        <button class="btn btn-primary" style="padding:9px 14px;font-size:11px;" onclick="addFeature()">Add</button>
+      </div>
+      <div id="featureList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -339,27 +366,15 @@ const TYPE_DEFAULT = ['Content','Campaign','Carousel','REEL','Teaser Video','Int
 const STATUS_OPTIONS = ['To Do','In Progress','Done','Carryforward','Blocked'];
 const APPROVAL_OPTIONS = ['Draft','To be approved','In Progress','Approved','Rejected'];
 
-/* --- FEATURE DEFINITIONS --- */
-const FEATURES = [
-  { id: 'transaction_module', name: 'Transaction Module', keywords: ['transaction module'], releaseDate: '2026-07-17' },
-  { id: 'research_360', name: 'Research 360', keywords: ['research 360'], releaseDate: '2026-07-01' },
-  { id: 'mf_brokerage', name: 'MF Brokerage', keywords: ['mf brokerage', 'mf brokerage module'], releaseDate: '2026-07-22' },
-  { id: 'portfolio_iq', name: 'Portfolio IQ', keywords: ['portfolio iq'], releaseDate: '2026-07-13' },
-  { id: 'daily_digest', name: 'Daily Digest', keywords: ['daily digest'], releaseDate: '2026-07-10' },
-  { id: 'client_churn', name: 'Client Churn Predictor', keywords: ['client churn', 'churn predictor'], releaseDate: '2026-07-24' },
-  { id: 'indore_launch', name: 'Indore Launch', keywords: ['indore launch'], releaseDate: '2026-07-10' },
-  { id: 'onboarding_form', name: 'Onboarding Form', keywords: ['onboarding form'], releaseDate: '2026-07-15' },
-];
+/* --- FEATURES (loaded from API) --- */
+let FEATURES = [];
 
 function getTaskFeature(task) {
-  const content = (task.content || '').toLowerCase();
-  for (const feat of FEATURES) {
-    if (feat.keywords.some(kw => content.includes(kw))) return feat;
-  }
-  return null;
+  if (!task.feature_id) return null;
+  return FEATURES.find(f => f.id === task.feature_id) || null;
 }
 
-function isFeatureTask(task) { return getTaskFeature(task) !== null; }
+function isFeatureTask(task) { return !!task.feature_id && getTaskFeature(task) !== null; }
 
 let state = {
   tasks: [],
@@ -388,15 +403,19 @@ async function apiFetch(path, opts={}){
 async function loadAll(){
   try{
     const tasks = await apiFetch('/api/tasks');
-    // normalize field names from snake_case API to camelCase frontend
     state.tasks = tasks.map(t => ({
       id: t.id, content: t.content, type: t.type, date: t.date,
       owner: t.owner, status: t.status, approval: t.approval,
       comment: t.comment, link: t.link, priority: t.priority || '',
+      feature_id: t.feature_id || '',
       platforms: t.platforms || [], assets: [],
       createdAt: t.created_at, updatedAt: t.updated_at,
     }));
   }catch(e){ console.error('Load failed', e); state.tasks = []; }
+  try{
+    const feats = await apiFetch('/api/features');
+    FEATURES = feats.map(f => ({ id: f.id, name: f.name, releaseDate: f.release_date || '' }));
+  }catch(e){ FEATURES = []; }
   try{
     const plats = await apiFetch('/api/platforms');
     const defaultSet = new Set(PLATFORMS_DEFAULT.map(p=>p.toLowerCase()));
@@ -418,6 +437,7 @@ async function saveTaskToServer(task, isNew){
     owner: task.owner||'', status: task.status||'To Do',
     approval: task.approval||'Draft', comment: task.comment||'',
     link: task.link||'', priority: task.priority||'',
+    feature_id: task.feature_id||'',
     platforms: task.platforms||[],
   };
   if(isNew){
@@ -471,6 +491,7 @@ function populateStaticSelects(){
   document.getElementById('f_owner').innerHTML = allOwners().map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
   document.getElementById('f_status').innerHTML = STATUS_OPTIONS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
   document.getElementById('f_approval').innerHTML = APPROVAL_OPTIONS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  document.getElementById('f_feature').innerHTML = '<option value="">(No feature)</option>' + FEATURES.map(f=>`<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('');
 
   document.getElementById('platformFilterChips').innerHTML = allPlatforms().map(p =>
     `<span class="chip-toggle" data-plat="${esc(p)}" onclick="togglePlatformFilter('${esc(p).replace(/'/g,"\\'")}')">${esc(p)}</span>`
@@ -516,10 +537,9 @@ function filteredTasks(){
       if(!t.date) return false;
       if(weekKeyFromDate(t.date) !== state.weekFilter) return false;
     }
-    if(state.filters.featureOnly && !isFeatureTask(t)) return false;
+    if(state.filters.featureOnly && !t.feature_id) return false;
     if(state.filters.feature){
-      const feat = getTaskFeature(t);
-      if(!feat || feat.id !== state.filters.feature) return false;
+      if(t.feature_id !== state.filters.feature) return false;
     }
     if(state.filters.search){
       const hay = (t.content+' '+t.comment+' '+t.type).toLowerCase();
@@ -705,22 +725,17 @@ function renderWeekNav(){
 function renderFeatureTimeline(){
   const el = document.getElementById('featureTimeline');
   if(!el) return;
+  if(!FEATURES.length){ el.innerHTML=''; return; }
 
   // Build stats for each feature
   const featureData = FEATURES.map(feat => {
-    const tasks = state.tasks.filter(t => {
-      const f = getTaskFeature(t);
-      return f && f.id === feat.id;
-    });
+    const tasks = state.tasks.filter(t => t.feature_id === feat.id);
     const total = tasks.length;
     const done = tasks.filter(t => t.status === 'Done').length;
     const inProgress = tasks.filter(t => t.status === 'In Progress').length;
     const pct = total ? Math.round((done / total) * 100) : 0;
-    // Find earliest task date as start
-    const dates = tasks.map(t => t.date).filter(Boolean).sort();
-    const startDate = dates[0] || feat.releaseDate;
-    return { ...feat, tasks, total, done, inProgress, pct, startDate };
-  }).filter(f => f.total > 0).sort((a,b) => (a.releaseDate||'').localeCompare(b.releaseDate||''));
+    return { ...feat, tasks, total, done, inProgress, pct };
+  }).sort((a,b) => (a.releaseDate||'9999').localeCompare(b.releaseDate||'9999'));
 
   if(!featureData.length){ el.innerHTML=''; return; }
 
@@ -921,6 +936,7 @@ function openTaskModal(id){
   document.getElementById('f_owner').value = task?.owner || allOwners()[0];
   document.getElementById('f_status').value = task?.status || 'To Do';
   document.getElementById('f_approval').value = task?.approval || 'Draft';
+  document.getElementById('f_feature').value = task?.feature_id || '';
   document.getElementById('f_comment').value = task?.comment || '';
   document.getElementById('f_link').value = task?.link || '';
   document.getElementById('utm_base').value='';
@@ -957,6 +973,7 @@ async function saveTask(){
     owner: document.getElementById('f_owner').value,
     status: document.getElementById('f_status').value,
     approval: document.getElementById('f_approval').value,
+    feature_id: document.getElementById('f_feature').value,
     comment: document.getElementById('f_comment').value.trim(),
     link: document.getElementById('f_link').value.trim(),
     platforms: [...state.modalPlatforms],
@@ -1004,6 +1021,73 @@ async function deleteCurrentTask(){
     console.error(e);
     showToast('Delete failed — check connection');
   }
+}
+
+/* ---------------- feature manager ---------------- */
+function openFeatureManager(){
+  document.getElementById('featureModalOverlay').classList.add('open');
+  renderFeatureManagerList();
+}
+function closeFeatureManager(){
+  document.getElementById('featureModalOverlay').classList.remove('open');
+}
+function renderFeatureManagerList(){
+  const box = document.getElementById('featureList');
+  if(!FEATURES.length){ box.innerHTML='<div style="text-align:center;color:var(--ink-42);font-size:12px;padding:20px;">No features yet. Add one above.</div>'; return; }
+  box.innerHTML = FEATURES.map(f => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--ink-13);border-radius:8px;background:#fff;">
+      <div style="flex:1;">
+        <div style="font-family:'Fraunces',serif;font-size:13.5px;">${esc(f.name)}</div>
+        <div style="font-size:10.5px;color:var(--ink-42);">${f.releaseDate ? 'Release: '+fmtDate(f.releaseDate) : 'No release date'}</div>
+      </div>
+      <span style="font-size:10px;color:var(--ink-42);">${state.tasks.filter(t=>t.feature_id===f.id).length} tasks</span>
+      <button class="btn-text" style="color:var(--teal);font-size:11px;" onclick="editFeaturePrompt('${f.id}')">Edit</button>
+      <button class="btn-text" style="color:var(--rust);font-size:11px;" onclick="deleteFeatureConfirm('${f.id}')">Delete</button>
+    </div>
+  `).join('');
+}
+async function addFeature(){
+  const name = document.getElementById('newFeatureName').value.trim();
+  const date = document.getElementById('newFeatureDate').value;
+  if(!name){ showToast('Enter a feature name'); return; }
+  try{
+    const res = await apiFetch('/api/features', { method:'POST', body: JSON.stringify({ name, release_date: date }) });
+    FEATURES.push({ id: res.id, name, releaseDate: date });
+    document.getElementById('newFeatureName').value='';
+    document.getElementById('newFeatureDate').value='';
+    populateStaticSelects();
+    renderFeatureManagerList();
+    renderFeatureTimeline();
+    showToast('Feature added');
+  }catch(e){ showToast('Failed to add feature'); }
+}
+async function editFeaturePrompt(featId){
+  const feat = FEATURES.find(f=>f.id===featId);
+  if(!feat) return;
+  const newName = prompt('Feature name:', feat.name);
+  if(!newName || !newName.trim()) return;
+  const newDate = prompt('Release date (YYYY-MM-DD):', feat.releaseDate||'');
+  try{
+    await apiFetch('/api/features/'+encodeURIComponent(featId), { method:'PUT', body: JSON.stringify({ name: newName.trim(), release_date: newDate||'' }) });
+    feat.name = newName.trim();
+    feat.releaseDate = newDate||'';
+    populateStaticSelects();
+    renderFeatureManagerList();
+    renderFeatureTimeline();
+    showToast('Feature updated');
+  }catch(e){ showToast('Failed to update'); }
+}
+async function deleteFeatureConfirm(featId){
+  if(!confirm('Delete this feature? Tasks will be unlinked but not deleted.')) return;
+  try{
+    await apiFetch('/api/features/'+encodeURIComponent(featId), { method:'DELETE' });
+    FEATURES = FEATURES.filter(f=>f.id!==featId);
+    state.tasks.forEach(t=>{ if(t.feature_id===featId) t.feature_id=''; });
+    populateStaticSelects();
+    renderFeatureManagerList();
+    render();
+    showToast('Feature deleted');
+  }catch(e){ showToast('Failed to delete'); }
 }
 
 /* ---------------- init ---------------- */

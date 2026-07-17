@@ -32,6 +32,7 @@ class TaskCreate(BaseModel):
     comment: str = ""
     link: str = ""
     priority: str = ""
+    feature_id: str = ""
     platforms: list[str] = []
 
 
@@ -130,6 +131,38 @@ async def add_owner(body: dict):
         raise HTTPException(status_code=400, detail="Name required")
     db.add_owner(name)
     return {"message": f"Owner '{name}' added"}
+
+
+# --- Feature API Routes ---
+@app.get("/api/features")
+async def get_features():
+    return db.get_all_features()
+
+
+@app.post("/api/features")
+async def create_feature(body: dict):
+    name = body.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name required")
+    import uuid
+    feature_id = f"feat_{uuid.uuid4().hex[:8]}"
+    db.create_feature({"id": feature_id, "name": name, "release_date": body.get("release_date", "")})
+    return {"id": feature_id, "message": f"Feature '{name}' created"}
+
+
+@app.put("/api/features/{feature_id}")
+async def update_feature(feature_id: str, body: dict):
+    name = body.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name required")
+    db.update_feature(feature_id, {"name": name, "release_date": body.get("release_date", "")})
+    return {"message": f"Feature '{name}' updated"}
+
+
+@app.delete("/api/features/{feature_id}")
+async def delete_feature(feature_id: str):
+    db.delete_feature(feature_id)
+    return {"message": "Feature deleted"}
 
 
 @app.post("/api/import")

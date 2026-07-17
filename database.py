@@ -47,6 +47,13 @@ def init_db():
     if DATABASE_URL:
         cur = conn.cursor()
         cur.execute("""
+        CREATE TABLE IF NOT EXISTS features (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            release_date TEXT DEFAULT '',
+            created_at TEXT DEFAULT ''
+        )""")
+        cur.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
             id TEXT PRIMARY KEY,
             content TEXT NOT NULL,
@@ -58,6 +65,7 @@ def init_db():
             comment TEXT DEFAULT '',
             link TEXT DEFAULT '',
             priority TEXT DEFAULT '',
+            feature_id TEXT DEFAULT '',
             source TEXT DEFAULT '',
             created_at TEXT DEFAULT '',
             updated_at TEXT DEFAULT ''
@@ -81,6 +89,12 @@ def init_db():
         cur.close()
     else:
         conn.executescript("""
+        CREATE TABLE IF NOT EXISTS features (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            release_date TEXT DEFAULT '',
+            created_at TEXT DEFAULT ''
+        );
         CREATE TABLE IF NOT EXISTS tasks (
             id TEXT PRIMARY KEY,
             content TEXT NOT NULL,
@@ -92,6 +106,7 @@ def init_db():
             comment TEXT DEFAULT '',
             link TEXT DEFAULT '',
             priority TEXT DEFAULT '',
+            feature_id TEXT DEFAULT '',
             source TEXT DEFAULT '',
             created_at TEXT DEFAULT '',
             updated_at TEXT DEFAULT ''
@@ -112,6 +127,12 @@ def init_db():
         );
         """)
         conn.commit()
+        # Add feature_id column if missing (migration for existing DBs)
+        try:
+            conn.execute("ALTER TABLE tasks ADD COLUMN feature_id TEXT DEFAULT ''")
+            conn.commit()
+        except Exception:
+            pass
 
     # Seed defaults
     default_platforms = ['Instagram', 'LinkedIn', 'YouTube', 'WhatsApp', 'Blog',
@@ -367,11 +388,11 @@ def create_task(task_data):
               task_data.get('date', ''), task_data.get('owner', ''),
               task_data.get('status', 'To Do'), task_data.get('approval', 'Draft'),
               task_data.get('comment', ''), task_data.get('link', ''),
-              task_data.get('priority', ''), 'Manual', now, now)
+              task_data.get('priority', ''), task_data.get('feature_id', ''), 'Manual', now, now)
     if DATABASE_URL:
         cur = conn.cursor()
-        cur.execute("""INSERT INTO tasks (id, content, type, date, owner, status, approval, comment, link, priority, source, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", params)
+        cur.execute("""INSERT INTO tasks (id, content, type, date, owner, status, approval, comment, link, priority, feature_id, source, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", params)
         for p in task_data.get('platforms', []):
             cur.execute("INSERT INTO task_platforms (task_id, platform) VALUES (%s, %s) ON CONFLICT DO NOTHING", (task_data['id'], p))
             cur.execute("INSERT INTO platforms (name) VALUES (%s) ON CONFLICT DO NOTHING", (p,))
@@ -379,8 +400,8 @@ def create_task(task_data):
             cur.execute("INSERT INTO owners (name) VALUES (%s) ON CONFLICT DO NOTHING", (task_data['owner'],))
         cur.close()
     else:
-        conn.execute("""INSERT INTO tasks (id, content, type, date, owner, status, approval, comment, link, priority, source, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", params)
+        conn.execute("""INSERT INTO tasks (id, content, type, date, owner, status, approval, comment, link, priority, feature_id, source, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", params)
         for p in task_data.get('platforms', []):
             conn.execute("INSERT OR IGNORE INTO task_platforms (task_id, platform) VALUES (?, ?)", (task_data['id'], p))
             conn.execute("INSERT OR IGNORE INTO platforms (name) VALUES (?)", (p,))
@@ -396,10 +417,11 @@ def update_task(task_id, task_data):
     params = (task_data['content'], task_data.get('type', ''), task_data.get('date', ''),
               task_data.get('owner', ''), task_data.get('status', 'To Do'),
               task_data.get('approval', 'Draft'), task_data.get('comment', ''),
-              task_data.get('link', ''), task_data.get('priority', ''), now, task_id)
+              task_data.get('link', ''), task_data.get('priority', ''),
+              task_data.get('feature_id', ''), now, task_id)
     if DATABASE_URL:
         cur = conn.cursor()
-        cur.execute("""UPDATE tasks SET content=%s, type=%s, date=%s, owner=%s, status=%s, approval=%s, comment=%s, link=%s, priority=%s, updated_at=%s WHERE id=%s""", params)
+        cur.execute("""UPDATE tasks SET content=%s, type=%s, date=%s, owner=%s, status=%s, approval=%s, comment=%s, link=%s, priority=%s, feature_id=%s, updated_at=%s WHERE id=%s""", params)
         cur.execute("DELETE FROM task_platforms WHERE task_id = %s", (task_id,))
         for p in task_data.get('platforms', []):
             cur.execute("INSERT INTO task_platforms (task_id, platform) VALUES (%s, %s) ON CONFLICT DO NOTHING", (task_id, p))
@@ -408,7 +430,7 @@ def update_task(task_id, task_data):
             cur.execute("INSERT INTO owners (name) VALUES (%s) ON CONFLICT DO NOTHING", (task_data['owner'],))
         cur.close()
     else:
-        conn.execute("""UPDATE tasks SET content=?, type=?, date=?, owner=?, status=?, approval=?, comment=?, link=?, priority=?, updated_at=? WHERE id=?""", params)
+        conn.execute("""UPDATE tasks SET content=?, type=?, date=?, owner=?, status=?, approval=?, comment=?, link=?, priority=?, feature_id=?, updated_at=? WHERE id=?""", params)
         conn.execute("DELETE FROM task_platforms WHERE task_id = ?", (task_id,))
         for p in task_data.get('platforms', []):
             conn.execute("INSERT OR IGNORE INTO task_platforms (task_id, platform) VALUES (?, ?)", (task_id, p))
@@ -495,6 +517,59 @@ def get_stats():
     stats['by_platform'] = [(r['platform'], r['c']) for r in rows]
     conn.close()
     return stats
+
+
+# --- Feature CRUD ---
+
+def get_all_features():
+    conn = get_connection()
+    rows = _query_all(conn, "SELECT * FROM features ORDER BY release_date ASC", "SELECT * FROM features ORDER BY release_date ASC")
+    conn.close()
+    return rows
+
+
+def create_feature(feature_data):
+    conn = get_connection()
+    now = datetime.now().isoformat()
+    if DATABASE_URL:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO features (id, name, release_date, created_at) VALUES (%s, %s, %s, %s)",
+                    (feature_data['id'], feature_data['name'], feature_data.get('release_date', ''), now))
+        cur.close()
+    else:
+        conn.execute("INSERT INTO features (id, name, release_date, created_at) VALUES (?, ?, ?, ?)",
+                     (feature_data['id'], feature_data['name'], feature_data.get('release_date', ''), now))
+    conn.commit()
+    conn.close()
+
+
+def update_feature(feature_id, feature_data):
+    conn = get_connection()
+    if DATABASE_URL:
+        cur = conn.cursor()
+        cur.execute("UPDATE features SET name=%s, release_date=%s WHERE id=%s",
+                    (feature_data['name'], feature_data.get('release_date', ''), feature_id))
+        cur.close()
+    else:
+        conn.execute("UPDATE features SET name=?, release_date=? WHERE id=?",
+                     (feature_data['name'], feature_data.get('release_date', ''), feature_id))
+    conn.commit()
+    conn.close()
+
+
+def delete_feature(feature_id):
+    conn = get_connection()
+    # Unlink tasks from this feature
+    if DATABASE_URL:
+        cur = conn.cursor()
+        cur.execute("UPDATE tasks SET feature_id='' WHERE feature_id=%s", (feature_id,))
+        cur.execute("DELETE FROM features WHERE id=%s", (feature_id,))
+        cur.close()
+    else:
+        conn.execute("UPDATE tasks SET feature_id='' WHERE feature_id=?", (feature_id,))
+        conn.execute("DELETE FROM features WHERE id=?", (feature_id,))
+    conn.commit()
+    conn.close()
 
 
 def reset_db():
