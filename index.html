@@ -6,950 +6,872 @@
 <title>Wylth — Marketing Task Manager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
 <style>
-:root {
-  --teal: #00BAB2;
-  --teal-dim: rgba(0,186,178,0.10);
-  --teal-line: rgba(0,186,178,0.28);
-  --teal-dark: #009d96;
-  --charcoal: #30302F;
-  --beige: #FDF6F0;
-  --cream: #FFFCF9;
-  --rust: #C2472E;
-  --rust-dim: rgba(194,71,46,0.08);
-  --amber: #C98A2C;
-  --amber-dim: rgba(201,138,44,0.10);
-  --ink: #30302F;
-  --ink-80: rgba(48,48,47,0.80);
-  --ink-65: rgba(48,48,47,0.65);
-  --ink-42: rgba(48,48,47,0.42);
-  --ink-13: rgba(48,48,47,0.10);
-  --ink-06: rgba(48,48,47,0.04);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.10);
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--beige); color: var(--charcoal); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.5; }
-::selection { background: var(--teal-dim); }
-button { cursor: pointer; font-family: inherit; }
-input, select, textarea { font-family: inherit; }
+  :root{
+    --teal:#00BAB2;
+    --teal-dim:rgba(0,186,178,0.12);
+    --teal-line:rgba(0,186,178,0.30);
+    --charcoal:#30302F;
+    --beige:#FEE9DF;
+    --rust:#C2472E;
+    --rust-dim:rgba(194,71,46,0.10);
+    --amber:#C98A2C;
+    --amber-dim:rgba(201,138,44,0.12);
+    --ink-65:rgba(48,48,47,0.65);
+    --ink-42:rgba(48,48,47,0.42);
+    --ink-13:rgba(48,48,47,0.13);
+    --card:#FFFCF9;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--beige);color:var(--charcoal);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--teal-dim);}
+  .app{max-width:1320px;margin:0 auto;padding:28px 32px 80px;}
 
-.app { max-width: 1440px; margin: 0 auto; padding: 24px 32px 80px; }
+  /* HEADER */
+  .topbar{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding-bottom:22px;border-bottom:1px solid var(--ink-13);margin-bottom:22px;flex-wrap:wrap;}
+  .brand-wrap .eyebrow{font-size:8.5px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
+  .brand-wrap h1{font-family:'Fraunces',serif;font-weight:400;font-size:32px;letter-spacing:-0.01em;margin:0;line-height:1.05;}
+  .brand-wrap h1 em{font-style:italic;color:var(--teal);}
+  .brand-wrap .sub{font-size:12.5px;color:var(--ink-65);margin-top:6px;}
+  .stat-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .stat-pill{font-size:10.5px;font-weight:500;padding:7px 12px;border-radius:20px;border:1px solid var(--ink-13);background:#fff;white-space:nowrap;}
+  .stat-pill b{font-weight:600;}
+  .stat-pill.total{border-color:var(--charcoal);}
+  .stat-pill.approved{color:var(--teal);border-color:var(--teal-line);background:var(--teal-dim);}
+  .stat-pill.pending{color:var(--amber);border-color:rgba(201,138,44,0.35);background:var(--amber-dim);}
+  .stat-pill.rejected{color:var(--rust);border-color:rgba(194,71,46,0.35);background:var(--rust-dim);}
 
-/* Header */
-.header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--ink-13); margin-bottom: 20px; flex-wrap: wrap; }
-.brand .eyebrow { font-size: 9px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
-.brand h1 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 30px; letter-spacing: -0.01em; line-height: 1.1; }
-.brand h1 em { font-style: italic; color: var(--teal); }
-.brand .sub { font-size: 12px; color: var(--ink-42); margin-top: 5px; }
+  /* WEEK NAV */
+  .week-nav{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border:1px solid var(--ink-13);border-radius:10px;padding:12px 16px;margin-bottom:16px;flex-wrap:wrap;}
 
-/* Stats */
-.stats { display: flex; gap: 10px; flex-wrap: wrap; }
-.stat { padding: 10px 16px; border-radius: var(--radius-md); border: 1px solid var(--ink-13); background: #fff; min-width: 90px; text-align: center; }
-.stat .num { font-size: 20px; font-weight: 700; line-height: 1.2; }
-.stat .label { font-size: 9px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-42); }
-.stat.teal { border-color: var(--teal-line); background: var(--teal-dim); }
-.stat.teal .num { color: var(--teal); }
-.stat.amber { border-color: rgba(201,138,44,0.3); background: var(--amber-dim); }
-.stat.amber .num { color: var(--amber); }
-.stat.rust { border-color: rgba(194,71,46,0.3); background: var(--rust-dim); }
-.stat.rust .num { color: var(--rust); }
+  /* TOOLBAR */
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;}
+  .toolbar input[type=text],.toolbar input[type=date],.toolbar select{
+    font-family:'Inter',sans-serif;font-size:12px;padding:9px 12px;border-radius:6px;border:1px solid var(--ink-13);background:#fff;color:var(--charcoal);outline:none;
+  }
+  .toolbar input[type=text]{min-width:190px;}
+  .toolbar input:focus,.toolbar select:focus{border-color:var(--teal);}
+  .chip-toggle{font-size:11px;padding:7px 12px;border-radius:20px;border:1px solid var(--ink-13);background:#fff;cursor:pointer;color:var(--ink-65);user-select:none;transition:.15s;}
+  .chip-toggle:hover{border-color:var(--teal-line);}
+  .chip-toggle.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal);}
+  .spacer{flex:1;}
+  .view-toggle{display:flex;border:1px solid var(--ink-13);border-radius:6px;overflow:hidden;}
+  .view-toggle button{border:none;background:#fff;font-family:'Inter',sans-serif;font-size:11px;font-weight:500;padding:9px 14px;cursor:pointer;color:var(--ink-65);}
+  .view-toggle button.active{background:var(--charcoal);color:#fff;}
+  .btn{font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:.02em;border-radius:6px;padding:10px 16px;cursor:pointer;border:1px solid transparent;white-space:nowrap;}
+  .btn-primary{background:var(--teal);color:#fff;}
+  .btn-primary:hover{background:#00a89f;}
+  .btn-ghost{background:#fff;border:1px solid var(--ink-13);color:var(--charcoal);}
+  .btn-ghost:hover{border-color:var(--charcoal);}
+  .btn-text{background:none;border:none;color:var(--ink-42);font-size:11px;text-decoration:underline;cursor:pointer;padding:4px;}
 
-/* Week Nav */
-.week-nav { display: flex; align-items: center; justify-content: center; gap: 12px; background: #fff; border: 1px solid var(--ink-13); border-radius: var(--radius-md); padding: 10px 16px; margin-bottom: 16px; flex-wrap: wrap; }
-.week-nav .week-label { font-family: 'Fraunces', serif; font-style: italic; font-size: 15px; color: var(--teal); min-width: 220px; text-align: center; }
-.week-nav .badge { font-size: 9px; font-weight: 600; color: var(--teal); background: var(--teal-dim); border: 1px solid var(--teal-line); padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
+  /* BOARD */
+  .board{display:flex;gap:16px;overflow-x:auto;padding-bottom:20px;}
+  .col{background:rgba(255,255,255,0.5);border:1px solid var(--ink-13);border-radius:10px;min-width:270px;max-width:270px;display:flex;flex-direction:column;max-height:74vh;}
+  .col.dragover{border-color:var(--teal);background:var(--teal-dim);}
+  .col-head{padding:14px 14px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ink-13);}
+  .col-head .name{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;}
+  .col-head .count{font-size:10px;color:var(--ink-42);background:var(--ink-13);border-radius:10px;padding:2px 7px;}
+  .col-body{padding:10px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;}
+  .col-body:empty::after{content:'No tasks';display:block;text-align:center;color:var(--ink-42);font-size:11px;padding:20px 0;}
 
-/* Toolbar */
-.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
-.toolbar input[type=text], .toolbar select {
-  font-size: 12px; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--ink-13); background: #fff; color: var(--charcoal); outline: none; transition: border-color 0.15s;
-}
-.toolbar input[type=text] { min-width: 200px; }
-.toolbar input:focus, .toolbar select:focus { border-color: var(--teal); }
-.chip { font-size: 10.5px; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--ink-13); background: #fff; color: var(--ink-65); user-select: none; transition: 0.15s; cursor: pointer; }
-.chip:hover { border-color: var(--teal-line); }
-.chip.active { background: var(--charcoal); color: #fff; border-color: var(--charcoal); }
-.spacer { flex: 1; }
-.view-toggle { display: flex; border: 1px solid var(--ink-13); border-radius: var(--radius-sm); overflow: hidden; }
-.view-toggle button { border: none; background: #fff; font-size: 11px; font-weight: 500; padding: 9px 14px; color: var(--ink-65); transition: 0.15s; }
-.view-toggle button.active { background: var(--charcoal); color: #fff; }
-.btn { font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; border-radius: var(--radius-sm); padding: 10px 16px; border: 1px solid transparent; white-space: nowrap; transition: 0.15s; }
-.btn-primary { background: var(--teal); color: #fff; }
-.btn-primary:hover { background: var(--teal-dark); }
-.btn-ghost { background: #fff; border: 1px solid var(--ink-13); color: var(--charcoal); }
-.btn-ghost:hover { border-color: var(--charcoal); }
-.btn-danger { background: var(--rust); color: #fff; }
-.btn-danger:hover { background: #a93c27; }
-.btn-sm { font-size: 10.5px; padding: 7px 12px; }
-.btn-text { background: none; border: none; color: var(--ink-42); font-size: 11px; text-decoration: underline; cursor: pointer; }
+  /* CARD */
+  .card{background:var(--card);border:1px solid var(--ink-13);border-radius:8px;padding:12px 13px;cursor:pointer;transition:.15s;}
+  .card:hover{border-color:var(--teal-line);box-shadow:0 2px 10px rgba(0,0,0,0.04);}
+  .card.dragging{opacity:.4;}
+  .card .ctitle{font-family:'Fraunces',serif;font-size:13.5px;line-height:1.3;margin-bottom:8px;}
+  .card .cmeta{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--ink-42);margin-bottom:8px;}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;}
+  .tag{font-size:9.5px;font-weight:500;padding:3px 8px;border-radius:10px;background:var(--teal-dim);color:#00857f;border:1px solid var(--teal-line);white-space:nowrap;}
+  .card-foot{display:flex;justify-content:space-between;align-items:center;}
+  .owner-badge{width:22px;height:22px;border-radius:50%;background:var(--charcoal);color:#fff;font-size:9.5px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+  .icon-row{display:flex;gap:8px;align-items:center;color:var(--ink-42);}
+  .icon-row svg{width:13px;height:13px;}
+  .approval-pill{font-size:9px;font-weight:600;padding:3px 8px;border-radius:9px;text-transform:uppercase;letter-spacing:.03em;}
+  .ap-draft{background:var(--ink-13);color:var(--ink-65);}
+  .ap-tobeapproved{background:var(--amber-dim);color:var(--amber);}
+  .ap-inprogress{background:var(--teal-dim);color:#00857f;}
+  .ap-approved{background:var(--teal);color:#fff;}
+  .ap-rejected{background:var(--rust);color:#fff;}
 
-/* Board */
-.board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 16px; }
-.col { background: rgba(255,255,255,0.55); border: 1px solid var(--ink-13); border-radius: var(--radius-md); min-width: 260px; max-width: 260px; display: flex; flex-direction: column; max-height: 72vh; transition: 0.15s; }
-.col.dragover { border-color: var(--teal); background: var(--teal-dim); }
-.col-head { padding: 12px 14px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--ink-13); }
-.col-head .name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
-.col-head .count { font-size: 9.5px; color: var(--ink-42); background: var(--ink-06); border: 1px solid var(--ink-13); border-radius: 10px; padding: 2px 8px; font-weight: 500; }
-.col-body { padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
-.col-body:empty::after { content: 'No tasks'; display: block; text-align: center; color: var(--ink-42); font-size: 11px; padding: 24px 0; }
+  /* LIST VIEW */
+  .week-block{margin-bottom:26px;}
+  .week-title{font-family:'Fraunces',serif;font-style:italic;font-size:15px;color:var(--teal);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--ink-13);}
+  .list-row{display:grid;grid-template-columns:88px 1.6fr 1fr 90px 110px 100px 40px;gap:12px;align-items:center;padding:11px 12px;background:var(--card);border:1px solid var(--ink-13);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:12px;}
+  .list-row:hover{border-color:var(--teal-line);}
+  .list-row .lr-date{font-size:10.5px;color:var(--ink-42);}
+  .list-row .lr-date b{display:block;color:var(--charcoal);font-size:12px;}
+  .list-row .lr-title{font-family:'Fraunces',serif;font-size:13px;}
+  .list-row .lr-title .type{display:block;font-family:'Inter',sans-serif;font-size:9.5px;color:var(--ink-42);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .list-head{display:grid;grid-template-columns:88px 1.6fr 1fr 90px 110px 100px 40px;gap:12px;padding:0 12px 6px;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-42);font-weight:600;}
+  .empty-state{text-align:center;padding:70px 20px;color:var(--ink-42);}
+  .empty-state h3{font-family:'Fraunces',serif;font-weight:400;color:var(--charcoal);font-size:20px;margin-bottom:6px;}
 
-/* Card */
-.card { background: var(--cream); border: 1px solid var(--ink-13); border-radius: 8px; padding: 12px 13px; cursor: pointer; transition: 0.15s; }
-.card:hover { border-color: var(--teal-line); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
-.card.dragging { opacity: 0.4; }
-.card .ctitle { font-family: 'Fraunces', serif; font-size: 13px; line-height: 1.35; margin-bottom: 7px; color: var(--ink-80); }
-.card .cmeta { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--ink-42); margin-bottom: 7px; }
-.card .source { font-size: 9px; color: var(--ink-42); background: var(--ink-06); padding: 1px 6px; border-radius: 8px; }
-.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
-.tag { font-size: 9px; font-weight: 500; padding: 2px 7px; border-radius: 10px; background: var(--teal-dim); color: #00857f; border: 1px solid var(--teal-line); white-space: nowrap; }
-.card-foot { display: flex; justify-content: space-between; align-items: center; }
-.avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--charcoal); color: #fff; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
-.pill { font-size: 8.5px; font-weight: 600; padding: 3px 8px; border-radius: 9px; text-transform: uppercase; letter-spacing: 0.03em; }
-.pill-draft { background: var(--ink-13); color: var(--ink-65); }
-.pill-tobeapproved { background: var(--amber-dim); color: var(--amber); }
-.pill-inprogress { background: var(--teal-dim); color: #00857f; }
-.pill-approved { background: var(--teal); color: #fff; }
-.pill-rejected { background: var(--rust); color: #fff; }
-
-/* List view */
-.list-head { display: grid; grid-template-columns: 80px 2fr 1.2fr 100px 100px 110px 50px; gap: 10px; padding: 0 12px 8px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-42); font-weight: 600; }
-.list-row { display: grid; grid-template-columns: 80px 2fr 1.2fr 100px 100px 110px 50px; gap: 10px; align-items: center; padding: 10px 12px; background: var(--cream); border: 1px solid var(--ink-13); border-radius: 8px; margin-bottom: 5px; cursor: pointer; font-size: 12px; transition: 0.15s; }
-.list-row:hover { border-color: var(--teal-line); box-shadow: var(--shadow-sm); }
-.list-row .date-cell { font-size: 10px; color: var(--ink-42); }
-.list-row .date-cell b { display: block; font-size: 12px; color: var(--charcoal); }
-.list-row .title-cell { font-family: 'Fraunces', serif; font-size: 12.5px; }
-.list-row .title-cell .type-badge { font-family: 'Inter'; font-size: 9px; color: var(--ink-42); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-top: 2px; }
-.week-group-title { font-family: 'Fraunces', serif; font-style: italic; font-size: 14px; color: var(--teal); margin: 16px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--ink-13); }
-
-/* Modal */
-.overlay { position: fixed; inset: 0; background: rgba(48,48,47,0.5); backdrop-filter: blur(2px); display: none; align-items: flex-start; justify-content: center; z-index: 100; padding: 50px 16px; overflow-y: auto; }
-.overlay.open { display: flex; }
-.modal { background: #fff; border-radius: var(--radius-lg); max-width: 680px; width: 100%; box-shadow: var(--shadow-lg); animation: modalIn 0.2s ease; }
-@keyframes modalIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--ink-13); }
-.modal-head h2 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 20px; }
-.modal-close { background: none; border: none; font-size: 20px; color: var(--ink-42); padding: 4px 8px; border-radius: 4px; }
-.modal-close:hover { background: var(--ink-06); }
-.modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; max-height: 65vh; overflow-y: auto; }
-.field label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-42); margin-bottom: 5px; }
-.field input, .field select, .field textarea {
-  width: 100%; font-size: 13px; padding: 10px 12px; border: 1px solid var(--ink-13); border-radius: var(--radius-sm); outline: none; color: var(--charcoal); background: #fff; transition: border-color 0.15s;
-}
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--teal); }
-.field textarea { resize: vertical; min-height: 56px; }
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-.platform-picker { display: flex; flex-wrap: wrap; gap: 6px; }
-.plat-opt { font-size: 11px; padding: 5px 11px; border-radius: 16px; border: 1px solid var(--ink-13); background: #fff; cursor: pointer; color: var(--ink-65); transition: 0.15s; }
-.plat-opt:hover { border-color: var(--teal-line); }
-.plat-opt.sel { background: var(--teal); border-color: var(--teal); color: #fff; }
-.modal-foot { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px 20px; border-top: 1px solid var(--ink-13); }
-
-/* Toast */
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--charcoal); color: #fff; font-size: 12.5px; padding: 11px 20px; border-radius: 8px; z-index: 300; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
-.toast.show { opacity: 1; }
-
-/* Analytics tab */
-.tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--ink-13); margin-bottom: 18px; }
-.tab-btn { padding: 10px 18px; font-size: 12px; font-weight: 500; border: none; background: none; color: var(--ink-42); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: 0.15s; }
-.tab-btn:hover { color: var(--charcoal); }
-.tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
-
-.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.chart-card { background: #fff; border: 1px solid var(--ink-13); border-radius: var(--radius-md); padding: 20px; }
-.chart-card h3 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 15px; margin-bottom: 14px; }
-.bar-chart { display: flex; flex-direction: column; gap: 8px; }
-.bar-row { display: flex; align-items: center; gap: 10px; }
-.bar-row .bar-label { font-size: 11px; min-width: 80px; color: var(--ink-65); text-align: right; }
-.bar-row .bar-track { flex: 1; height: 20px; background: var(--ink-06); border-radius: 4px; overflow: hidden; }
-.bar-row .bar-fill { height: 100%; background: var(--teal); border-radius: 4px; transition: width 0.4s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
-.bar-row .bar-fill span { font-size: 9px; font-weight: 600; color: #fff; }
-
-/* Empty state */
-.empty-state { text-align: center; padding: 60px 20px; color: var(--ink-42); }
-.empty-state h3 { font-family: 'Fraunces', serif; font-weight: 400; color: var(--charcoal); font-size: 20px; margin-bottom: 8px; }
-
-/* Assets / OneDrive */
-.assets-panel { background: #fff; border: 1px solid var(--ink-13); border-radius: var(--radius-md); padding: 24px; margin-bottom: 20px; }
-.assets-panel h3 { font-family: 'Fraunces', serif; font-weight: 400; font-size: 17px; margin-bottom: 12px; }
-.config-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
-.config-form input { font-size: 12px; padding: 9px 12px; border: 1px solid var(--ink-13); border-radius: var(--radius-sm); min-width: 300px; }
-.config-form input:focus { border-color: var(--teal); outline: none; }
-.device-code-box { background: var(--teal-dim); border: 1px solid var(--teal-line); border-radius: var(--radius-md); padding: 16px 20px; margin: 12px 0; }
-.device-code-box .code { font-size: 28px; font-weight: 700; font-family: monospace; color: var(--teal-dark); letter-spacing: 0.05em; }
-.device-code-box p { font-size: 12px; color: var(--ink-65); margin-top: 6px; }
-.upload-zone { border: 2px dashed var(--ink-13); border-radius: var(--radius-md); padding: 40px 20px; text-align: center; cursor: pointer; transition: 0.15s; margin: 16px 0; }
-.upload-zone:hover, .upload-zone.dragover { border-color: var(--teal); background: var(--teal-dim); }
-.upload-zone p { font-size: 13px; color: var(--ink-42); margin-top: 8px; }
-.upload-zone .icon { font-size: 32px; }
-.file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
-.file-card { background: var(--cream); border: 1px solid var(--ink-13); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
-.file-card .fname { font-size: 12px; font-weight: 500; word-break: break-all; }
-.file-card .fmeta { font-size: 10px; color: var(--ink-42); }
-.file-card a { font-size: 11px; color: var(--teal); text-decoration: none; }
-.file-card a:hover { text-decoration: underline; }
-.upload-progress { margin: 12px 0; }
-.upload-progress .bar-track { height: 6px; background: var(--ink-06); border-radius: 3px; overflow: hidden; }
-.upload-progress .bar-fill { height: 100%; background: var(--teal); border-radius: 3px; transition: width 0.3s; }
-.status-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; padding: 5px 10px; border-radius: 12px; }
-.status-indicator.connected { background: var(--teal-dim); color: #00857f; }
-.status-indicator.disconnected { background: var(--rust-dim); color: var(--rust); }
-.status-indicator .dot { width: 7px; height: 7px; border-radius: 50%; }
-.status-indicator.connected .dot { background: var(--teal); }
-.status-indicator.disconnected .dot { background: var(--rust); }
-
-/* Responsive */
-@media(max-width: 768px) {
-  .app { padding: 16px; }
-  .board { gap: 10px; }
-  .col { min-width: 240px; max-width: 240px; }
-  .list-row, .list-head { grid-template-columns: 60px 1fr 80px; }
-  .analytics-grid { grid-template-columns: 1fr; }
-  .row2, .row3 { grid-template-columns: 1fr; }
-}
+  /* MODAL */
+  .overlay{position:fixed;inset:0;background:rgba(48,48,47,0.45);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:40px 16px;overflow-y:auto;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:12px;max-width:640px;width:100%;padding:0;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:22px 26px;border-bottom:1px solid var(--ink-13);}
+  .modal-head h2{font-family:'Fraunces',serif;font-weight:400;font-size:20px;margin:0;}
+  .modal-close{background:none;border:none;cursor:pointer;color:var(--ink-42);font-size:18px;line-height:1;padding:4px;}
+  .modal-body{padding:22px 26px;display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto;}
+  .field label{display:block;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-42);margin-bottom:6px;}
+  .field input[type=text],.field input[type=date],.field input[type=url],.field select,.field textarea{
+    width:100%;font-family:'Inter',sans-serif;font-size:13px;padding:10px 12px;border:1px solid var(--ink-13);border-radius:6px;outline:none;color:var(--charcoal);background:#fff;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal);}
+  .field textarea{resize:vertical;min-height:56px;font-family:'Inter',sans-serif;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .tag-picker{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .tag-opt{font-size:11px;padding:6px 11px;border-radius:16px;border:1px solid var(--ink-13);background:#fff;cursor:pointer;color:var(--ink-65);}
+  .tag-opt.sel{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .tag-add-row{display:flex;gap:6px;}
+  .tag-add-row input{flex:1;font-size:12px;padding:7px 10px;border:1px solid var(--ink-13);border-radius:6px;}
+  .tag-add-row button{font-size:11px;padding:7px 12px;border-radius:6px;border:1px solid var(--ink-13);background:#fff;cursor:pointer;}
+  .link-row{display:flex;gap:8px;}
+  .link-row input{flex:1;}
+  .icon-btn{border:1px solid var(--ink-13);background:#fff;border-radius:6px;padding:0 12px;cursor:pointer;display:flex;align-items:center;color:var(--ink-65);}
+  .icon-btn:hover{border-color:var(--teal);color:var(--teal);}
+  .utm-box{border:1px dashed var(--ink-13);border-radius:8px;padding:14px;background:rgba(0,186,178,0.03);}
+  .utm-box .utm-title{font-size:11px;font-weight:600;color:var(--teal);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .utm-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .utm-result{display:flex;gap:8px;margin-top:4px;}
+  .utm-result input{flex:1;font-size:11px;background:#fff;}
+  .dropzone{border:1.5px dashed var(--ink-13);border-radius:8px;padding:22px;text-align:center;cursor:pointer;color:var(--ink-42);font-size:12px;transition:.15s;}
+  .dropzone.drag{border-color:var(--teal);background:var(--teal-dim);color:var(--teal);}
+  .asset-list{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+  .asset-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--ink-13);border-radius:6px;font-size:11.5px;background:#fafafa;}
+  .asset-item .aname{display:flex;align-items:center;gap:8px;overflow:hidden;}
+  .asset-item .aname span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .asset-item .aacts{display:flex;gap:6px;flex-shrink:0;}
+  .asset-item .aacts button{border:none;background:none;cursor:pointer;color:var(--ink-42);font-size:10px;text-decoration:underline;}
+  .asset-item .aacts button:hover{color:var(--rust);}
+  .modal-foot{display:flex;justify-content:space-between;align-items:center;padding:18px 26px 24px;border-top:1px solid var(--ink-13);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--charcoal);color:#fff;font-size:12.5px;padding:11px 20px;border-radius:8px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;}
+  .toast.show{opacity:1;}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:300;padding:30px;}
+  .lightbox.open{display:flex;}
+  .lightbox img,.lightbox video{max-width:90vw;max-height:88vh;border-radius:6px;}
+  .lightbox .lb-close{position:absolute;top:20px;right:26px;color:#fff;font-size:26px;cursor:pointer;background:none;border:none;}
+  @media(max-width:720px){
+    .row2,.row3,.utm-fields{grid-template-columns:1fr;}
+    .list-row,.list-head{grid-template-columns:70px 1fr 60px;}
+    .list-row .lr-plat,.list-row .lr-owner,.list-head span:nth-child(3),.list-head span:nth-child(5){display:none;}
+  }
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand-wrap">
+      <div class="eyebrow">Product Team</div>
+      <h1>Marketing <em>Task Manager</em></h1>
+      <div class="sub">Plan, tag, assign and track every post across channels.</div>
+    </div>
+    <div class="stat-row" id="statRow"></div>
+  </div>
+
+  <div class="week-nav" id="weekNav"></div>
+
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search tasks..." oninput="onFilterChange()">
+    <select id="ownerFilter" onchange="onFilterChange()"><option value="">All owners</option></select>
+    <select id="statusFilter" onchange="onFilterChange()"><option value="">All statuses</option></select>
+    <select id="approvalFilter" onchange="onFilterChange()"><option value="">All approvals</option></select>
+    <div id="platformFilterChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    <button class="btn-text" onclick="clearFilters()">Clear filters</button>
+    <div class="spacer"></div>
+    <div class="view-toggle">
+      <button id="viewBoardBtn" class="active" onclick="setView('board')">Board</button>
+      <button id="viewListBtn" onclick="setView('list')">List</button>
+    </div>
+    <button class="btn btn-primary" onclick="openTaskModal()">+ New task</button>
+  </div>
+
+  <div id="mainArea"></div>
+</div>
+
+<!-- TASK MODAL -->
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">New task</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Content / description</label>
+        <textarea id="f_content" placeholder="e.g. Carousel post on payday effect"></textarea>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Type</label>
+          <input type="text" id="f_type" list="typeOptions" placeholder="Content, Campaign, Reel...">
+          <datalist id="typeOptions"></datalist>
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="f_date">
+        </div>
+      </div>
+      <div class="field">
+        <label>Platform tags</label>
+        <div class="tag-picker" id="platformPicker"></div>
+        <div class="tag-add-row">
+          <input type="text" id="newPlatformInput" placeholder="Add custom platform...">
+          <button onclick="addCustomPlatform()">Add</button>
+        </div>
+      </div>
+      <div class="row3">
+        <div class="field">
+          <label>Owner</label>
+          <select id="f_owner"></select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="f_status"></select>
+        </div>
+        <div class="field">
+          <label>Approval status</label>
+          <select id="f_approval"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Comment</label>
+        <textarea id="f_comment" placeholder="Notes, blockers, context..."></textarea>
+      </div>
+      <div class="field">
+        <label>Post / content link</label>
+        <div class="link-row">
+          <input type="url" id="f_link" placeholder="https://...">
+          <button class="icon-btn" onclick="copyField('f_link')" title="Copy link">Copy</button>
+        </div>
+      </div>
+
+      <div class="utm-box">
+        <div class="utm-title" onclick="toggleUtm()">
+          <span>🔗 Link generator — build a tracked share link</span>
+          <span id="utmChevron">▾</span>
+        </div>
+        <div id="utmBody">
+          <div class="utm-fields">
+            <div class="field"><label>Base URL</label><input type="text" id="utm_base" placeholder="https://wylth.com/..."></div>
+            <div class="field"><label>Source</label><input type="text" id="utm_source" placeholder="instagram"></div>
+            <div class="field"><label>Medium</label>
+              <select id="utm_medium">
+                <option>social</option><option>email</option><option>referral</option><option>whatsapp</option><option>organic</option>
+              </select>
+            </div>
+            <div class="field"><label>Campaign</label><input type="text" id="utm_campaign" placeholder="auto from content"></div>
+          </div>
+          <button class="btn btn-ghost" style="font-size:11px;padding:8px 14px;" onclick="generateUtm()">Generate link</button>
+          <div class="utm-result">
+            <input type="text" id="utm_output" readonly placeholder="Your generated link will appear here">
+            <button class="icon-btn" onclick="copyField('utm_output')">Copy</button>
+            <button class="icon-btn" onclick="useUtmAsLink()">Use as link</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Assets</label>
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+          Drag files here or click to upload (images, video, PDF, docs — under ~3.5MB each)
+        </div>
+        <input type="file" id="fileInput" multiple style="display:none">
+        <div class="asset-list" id="assetList"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-text" id="deleteBtn" onclick="deleteCurrentTask()" style="display:none;color:var(--rust);">Delete task</button>
+      <div style="margin-left:auto;display:flex;gap:10px;">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTask()">Save task</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <div id="lightboxContent"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<script type="text/babel">
-const { useState, useEffect, useCallback, useRef } = React;
+<script>
+/* ---------------- constants ---------------- */
+const PLATFORMS_DEFAULT = ['Instagram','LinkedIn','YouTube','WhatsApp','Blog','Customer.io','Instantly','Twitter/X','Facebook'];
+const OWNERS_DEFAULT = ['Mahek','Charu','Samriddhi','Aamir','Winston','Akshit'];
+const TYPE_DEFAULT = ['Content','Campaign','Carousel','REEL','Teaser Video','Internal Prep','Email Campaign'];
+const STATUS_OPTIONS = ['To Do','In Progress','Done','Carryforward','Blocked'];
+const APPROVAL_OPTIONS = ['Draft','To be approved','In Progress','Approved','Rejected'];
 
-// --- API helpers ---
-const api = {
-  async get(url) { const r = await fetch(url); return r.json(); },
-  async post(url, data) { const r = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); return r.json(); },
-  async put(url, data) { const r = await fetch(url, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); return r.json(); },
-  async patch(url, data) { const r = await fetch(url, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); return r.json(); },
-  async del(url) { const r = await fetch(url, { method: 'DELETE' }); return r.json(); },
+let state = {
+  tasks: [],
+  customPlatforms: [],
+  customOwners: [],
+  view: 'board',
+  editingId: null,
+  modalPlatforms: [],
+  modalAssets: [], // {id,name,type,size}
+  weekFilter: null, // Monday date string 'YYYY-MM-DD', or null = all weeks
+  filters: { search:'', owner:'', status:'', approval:'', platforms:[] }
 };
 
-const STATUS_OPTIONS = ['To Do', 'In Progress', 'Done', 'Carryforward', 'Blocked'];
-const APPROVAL_OPTIONS = ['Draft', 'To be approved', 'In Progress', 'Approved', 'Rejected'];
-const TYPE_OPTIONS = ['Content', 'Campaign', 'Carousel', 'REEL', 'Teaser Video', 'Internal Prep', 'Email Campaign', 'Research', 'Creatives', 'Documentation'];
+/* ---------------- storage (SQLite via API) ---------------- */
+const API = '';  // same origin
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2400);
+async function apiFetch(path, opts={}){
+  const res = await fetch(API + path, {
+    headers: {'Content-Type':'application/json', ...opts.headers},
+    ...opts,
+  });
+  if(!res.ok) throw new Error(await res.text());
+  return res.json();
 }
 
-function initials(name) { return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
-function fmtDate(d) { if (!d) return 'No date'; const dt = new Date(d + 'T00:00:00'); return isNaN(dt) ? d : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
-function dayName(d) { if (!d) return ''; const dt = new Date(d + 'T00:00:00'); return isNaN(dt) ? '' : dt.toLocaleDateString('en-US', { weekday: 'short' }); }
-function pillClass(ap) { return 'pill pill-' + (ap || 'draft').toLowerCase().replace(/\s+/g, ''); }
-
-function getMondayOf(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  d.setDate(d.getDate() - ((day + 6) % 7));
-  d.setHours(0, 0, 0, 0);
-  return d;
+async function loadAll(){
+  try{
+    const tasks = await apiFetch('/api/tasks');
+    // normalize field names from snake_case API to camelCase frontend
+    state.tasks = tasks.map(t => ({
+      id: t.id, content: t.content, type: t.type, date: t.date,
+      owner: t.owner, status: t.status, approval: t.approval,
+      comment: t.comment, link: t.link, priority: t.priority || '',
+      platforms: t.platforms || [], assets: [],
+      createdAt: t.created_at, updatedAt: t.updated_at,
+    }));
+  }catch(e){ console.error('Load failed', e); state.tasks = []; }
+  try{
+    const plats = await apiFetch('/api/platforms');
+    const defaultSet = new Set(PLATFORMS_DEFAULT.map(p=>p.toLowerCase()));
+    state.customPlatforms = plats.filter(p => !defaultSet.has(p.toLowerCase()));
+  }catch(e){}
+  try{
+    const owns = await apiFetch('/api/owners');
+    const defaultSet = new Set(OWNERS_DEFAULT.map(o=>o.toLowerCase()));
+    state.customOwners = owns.filter(o => !defaultSet.has(o.toLowerCase()));
+  }catch(e){}
+  state.weekFilter = currentWeekKey();
+  populateStaticSelects();
+  render();
 }
-function toKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-function weekLabel(monday) {
-  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
-  const opts = { month: 'short', day: 'numeric' };
-  return `Week of ${monday.toLocaleDateString('en-US', opts)} – ${sunday.toLocaleDateString('en-US', opts)}`;
+
+async function saveTaskToServer(task, isNew){
+  const body = {
+    content: task.content, type: task.type||'', date: task.date||'',
+    owner: task.owner||'', status: task.status||'To Do',
+    approval: task.approval||'Draft', comment: task.comment||'',
+    link: task.link||'', priority: task.priority||'',
+    platforms: task.platforms||[],
+  };
+  if(isNew){
+    const res = await apiFetch('/api/tasks', { method:'POST', body: JSON.stringify(body) });
+    return res.id;
+  } else {
+    await apiFetch('/api/tasks/' + encodeURIComponent(task.id), { method:'PUT', body: JSON.stringify(body) });
+    return task.id;
+  }
 }
 
-// --- Main App ---
-function App() {
-  const [tasks, setTasks] = useState([]);
-  const [stats, setStats] = useState({});
-  const [platforms, setPlatforms] = useState([]);
-  const [owners, setOwners] = useState([]);
-  const [view, setView] = useState('board');
-  const [tab, setTab] = useState('tasks');
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [showAllWeeks, setShowAllWeeks] = useState(false);
-  const [filters, setFilters] = useState({ search: '', owner: '', status: '', approval: '', platform: '' });
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
-  const [loading, setLoading] = useState(true);
+async function deleteTaskFromServer(taskId){
+  await apiFetch('/api/tasks/' + encodeURIComponent(taskId), { method:'DELETE' });
+}
 
-  const loadData = useCallback(async () => {
-    const [t, s, p, o] = await Promise.all([
-      api.get('/api/tasks'), api.get('/api/stats'), api.get('/api/platforms'), api.get('/api/owners')
-    ]);
-    setTasks(t); setStats(s); setPlatforms(p); setOwners(o);
-    setLoading(false);
-  }, []);
+async function updateStatusOnServer(taskId, newStatus){
+  await apiFetch('/api/tasks/' + encodeURIComponent(taskId) + '/status', {
+    method:'PATCH', body: JSON.stringify({ status: newStatus })
+  });
+}
 
-  useEffect(() => { loadData(); }, [loadData]);
+// Asset blobs stored in-memory only (files not persisted to server for now)
+async function storeAssetBlob(taskId, assetId, payload){}
+async function fetchAssetBlob(taskId, assetId){ return null; }
+async function deleteAssetBlob(taskId, assetId){}
 
-  const today = new Date();
-  const currentMonday = getMondayOf(today);
-  const selectedMonday = new Date(currentMonday);
-  selectedMonday.setDate(selectedMonday.getDate() + weekOffset * 7);
-  const selectedKey = toKey(selectedMonday);
-  const isCurrent = weekOffset === 0;
+/* ---------------- helpers ---------------- */
+function uid(prefix){ return prefix+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function slugify(s){ return (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,40); }
+function allPlatforms(){ return [...PLATFORMS_DEFAULT, ...state.customPlatforms]; }
+function allOwners(){ return [...OWNERS_DEFAULT, ...state.customOwners]; }
+function initials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+function dayName(dateStr){ if(!dateStr) return ''; const d=new Date(dateStr+'T00:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('en-US',{weekday:'short'}); }
+function fmtDate(dateStr){ if(!dateStr) return 'No date'; const d=new Date(dateStr+'T00:00:00'); if(isNaN(d)) return dateStr; return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function apClass(ap){ return 'ap-'+(ap||'draft').toLowerCase().replace(/\s+/g,''); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(window._toastT); window._toastT=setTimeout(()=>t.classList.remove('show'),2200); }
 
-  // Only show Marketing Calendar tasks (ignore individual person sheets)
-  const calendarTasks = tasks.filter(t => t.source === 'Marketing Calendar');
+/* ---------------- static selects ---------------- */
+function populateStaticSelects(){
+  const ownerFilter = document.getElementById('ownerFilter');
+  const statusFilter = document.getElementById('statusFilter');
+  const approvalFilter = document.getElementById('approvalFilter');
+  ownerFilter.innerHTML = '<option value="">All owners</option>' + allOwners().map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
+  statusFilter.innerHTML = '<option value="">All statuses</option>' + STATUS_OPTIONS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  approvalFilter.innerHTML = '<option value="">All approvals</option>' + APPROVAL_OPTIONS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
 
-  // Compute stats from calendar tasks only
-  const calStats = (() => {
-    const all = calendarTasks;
-    const total = all.length;
-    const done = all.filter(t => t.status === 'Done').length;
-    const in_progress = all.filter(t => t.status === 'In Progress').length;
-    const todo = all.filter(t => t.status === 'To Do').length;
-    const blocked = all.filter(t => t.status === 'Blocked').length;
-    const approved = all.filter(t => t.approval === 'Approved').length;
-    const pending = all.filter(t => t.approval === 'To be approved' || t.approval === 'In Progress').length;
-    const rejected = all.filter(t => t.approval === 'Rejected').length;
-    // By platform
-    const platMap = {};
-    all.forEach(t => (t.platforms || []).forEach(p => { platMap[p] = (platMap[p] || 0) + 1; }));
-    const by_platform = Object.entries(platMap).sort((a, b) => b[1] - a[1]);
-    // By owner
-    const ownerMap = {};
-    all.forEach(t => { if (t.owner) ownerMap[t.owner] = (ownerMap[t.owner] || 0) + 1; });
-    const by_owner = Object.entries(ownerMap).sort((a, b) => b[1] - a[1]);
-    return { total, done, in_progress, todo, blocked, approved, pending, rejected, by_platform, by_owner };
-  })();
+  document.getElementById('typeOptions').innerHTML = TYPE_DEFAULT.map(t=>`<option value="${esc(t)}">`).join('');
+  document.getElementById('f_owner').innerHTML = allOwners().map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
+  document.getElementById('f_status').innerHTML = STATUS_OPTIONS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  document.getElementById('f_approval').innerHTML = APPROVAL_OPTIONS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
 
-  // Filter tasks
-  const filteredTasks = calendarTasks.filter(t => {
-    if (!showAllWeeks) {
-      if (!t.date) return false;
-      const taskMonday = getMondayOf(new Date(t.date + 'T00:00:00'));
-      if (toKey(taskMonday) !== selectedKey) return false;
+  document.getElementById('platformFilterChips').innerHTML = allPlatforms().map(p =>
+    `<span class="chip-toggle" data-plat="${esc(p)}" onclick="togglePlatformFilter('${esc(p).replace(/'/g,"\\'")}')">${esc(p)}</span>`
+  ).join('');
+}
+
+/* ---------------- filters ---------------- */
+function onFilterChange(){
+  state.filters.search = document.getElementById('searchInput').value.toLowerCase();
+  state.filters.owner = document.getElementById('ownerFilter').value;
+  state.filters.status = document.getElementById('statusFilter').value;
+  state.filters.approval = document.getElementById('approvalFilter').value;
+  renderMain();
+}
+function togglePlatformFilter(p){
+  const i = state.filters.platforms.indexOf(p);
+  if(i>-1) state.filters.platforms.splice(i,1); else state.filters.platforms.push(p);
+  document.querySelectorAll('#platformFilterChips .chip-toggle').forEach(c=>{
+    c.classList.toggle('active', state.filters.platforms.includes(c.dataset.plat));
+  });
+  renderMain();
+}
+function clearFilters(){
+  state.filters = { search:'', owner:'', status:'', approval:'', platforms:[] };
+  document.getElementById('searchInput').value='';
+  document.getElementById('ownerFilter').value='';
+  document.getElementById('statusFilter').value='';
+  document.getElementById('approvalFilter').value='';
+  document.querySelectorAll('#platformFilterChips .chip-toggle').forEach(c=>c.classList.remove('active'));
+  renderMain();
+}
+function filteredTasks(){
+  return state.tasks.filter(t=>{
+    if(state.weekFilter){
+      if(!t.date) return false;
+      if(weekKeyFromDate(t.date) !== state.weekFilter) return false;
     }
-    if (filters.search) {
-      const hay = (t.content + ' ' + t.comment + ' ' + t.type).toLowerCase();
-      if (!hay.includes(filters.search.toLowerCase())) return false;
+    if(state.filters.search){
+      const hay = (t.content+' '+t.comment+' '+t.type).toLowerCase();
+      if(!hay.includes(state.filters.search)) return false;
     }
-    if (filters.owner && t.owner !== filters.owner) return false;
-    if (filters.status && t.status !== filters.status) return false;
-    if (filters.approval && t.approval !== filters.approval) return false;
-    if (filters.platform && !(t.platforms || []).includes(filters.platform)) return false;
+    if(state.filters.owner && t.owner !== state.filters.owner) return false;
+    if(state.filters.status && t.status !== state.filters.status) return false;
+    if(state.filters.approval && t.approval !== state.filters.approval) return false;
+    if(state.filters.platforms.length && !(t.platforms||[]).some(p=>state.filters.platforms.includes(p))) return false;
     return true;
   });
-
-  const openModal = (task) => { setEditingTask(task || null); setModalOpen(true); };
-  const closeModal = () => { setModalOpen(false); setEditingTask(null); };
-
-  const handleSave = async (data) => {
-    if (editingTask) {
-      await api.put(`/api/tasks/${editingTask.id}`, data);
-      showToast('Task updated');
-    } else {
-      await api.post('/api/tasks', data);
-      showToast('Task created');
-    }
-    closeModal();
-    loadData();
-  };
-
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this task?')) return;
-    await api.del(`/api/tasks/${id}`);
-    showToast('Task deleted');
-    closeModal();
-    loadData();
-  };
-
-  const handleDrop = async (taskId, newStatus) => {
-    await api.patch(`/api/tasks/${taskId}/status`, { status: newStatus });
-    showToast(`Moved to ${newStatus}`);
-    loadData();
-  };
-
-  if (loading) return <div className="empty-state"><h3>Loading...</h3></div>;
-
-  return (
-    <div className="app">
-      <Header stats={calStats} />
-      <TabBar tab={tab} setTab={setTab} />
-
-      {tab === 'tasks' && (
-        <>
-          <WeekNav
-            weekOffset={weekOffset} setWeekOffset={setWeekOffset}
-            showAllWeeks={showAllWeeks} setShowAllWeeks={setShowAllWeeks}
-            selectedMonday={selectedMonday} isCurrent={isCurrent}
-          />
-          <Toolbar
-            filters={filters} setFilters={setFilters}
-            view={view} setView={setView}
-            owners={owners} platforms={platforms}
-            onNewTask={() => openModal(null)}
-          />
-          {view === 'board' ? (
-            <BoardView tasks={filteredTasks} onCardClick={openModal} onDrop={handleDrop} />
-          ) : (
-            <ListView tasks={filteredTasks} onRowClick={openModal} showAllWeeks={showAllWeeks} />
-          )}
-        </>
-      )}
-
-      {tab === 'analytics' && <AnalyticsView stats={calStats} tasks={calendarTasks} />}
-
-      {tab === 'assets' && <AssetsView />}
-
-      {modalOpen && (
-        <TaskModal
-          task={editingTask}
-          platforms={platforms}
-          owners={owners}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onClose={closeModal}
-        />
-      )}
-    </div>
-  );
 }
 
-// --- Header ---
-function Header({ stats }) {
-  return (
-    <div className="header">
-      <div className="brand">
-        <div className="eyebrow">Product Team</div>
-        <h1>Marketing <em>Task Manager</em></h1>
-        <div className="sub">Plan, tag, assign and track every post across channels.</div>
-      </div>
-      <div className="stats">
-        <div className="stat"><div className="num">{stats.total || 0}</div><div className="label">Tasks</div></div>
-        <div className="stat teal"><div className="num">{stats.done || 0}</div><div className="label">Done</div></div>
-        <div className="stat teal"><div className="num">{stats.approved || 0}</div><div className="label">Approved</div></div>
-        <div className="stat amber"><div className="num">{stats.pending || 0}</div><div className="label">Pending</div></div>
-        <div className="stat rust"><div className="num">{stats.rejected || 0}</div><div className="label">Rejected</div></div>
-      </div>
-    </div>
-  );
+/* ---------------- view ---------------- */
+function setView(v){
+  state.view = v;
+  document.getElementById('viewBoardBtn').classList.toggle('active', v==='board');
+  document.getElementById('viewListBtn').classList.toggle('active', v==='list');
+  renderMain();
 }
 
-// --- Tab Bar ---
-function TabBar({ tab, setTab }) {
-  return (
-    <div className="tab-bar">
-      <button className={`tab-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>📋 Tasks</button>
-      <button className={`tab-btn ${tab === 'analytics' ? 'active' : ''}`} onClick={() => setTab('analytics')}>📊 Analytics</button>
-      <button className={`tab-btn ${tab === 'assets' ? 'active' : ''}`} onClick={() => setTab('assets')}>📁 Assets</button>
-    </div>
-  );
+function render(){
+  renderStats();
+  renderWeekNav();
+  renderMain();
 }
 
-// --- Week Nav ---
-function WeekNav({ weekOffset, setWeekOffset, showAllWeeks, setShowAllWeeks, selectedMonday, isCurrent }) {
-  return (
-    <div className="week-nav">
-      <button className="btn btn-ghost btn-sm" onClick={() => { setWeekOffset(w => w - 1); setShowAllWeeks(false); }}>‹ Prev</button>
-      <button className="btn btn-ghost btn-sm" onClick={() => { setWeekOffset(0); setShowAllWeeks(false); }}>This week</button>
-      <span className="week-label">
-        {showAllWeeks ? 'Showing all weeks' : weekLabel(selectedMonday)}
-        {isCurrent && !showAllWeeks && <span className="badge">CURRENT</span>}
-      </span>
-      <button className="btn btn-ghost btn-sm" onClick={() => { setWeekOffset(w => w + 1); setShowAllWeeks(false); }}>Next ›</button>
-      <button className="btn-text" onClick={() => setShowAllWeeks(a => !a)}>{showAllWeeks ? 'This week' : 'All weeks'}</button>
-    </div>
-  );
+function renderStats(){
+  const t = state.weekFilter
+    ? state.tasks.filter(x => x.date && weekKeyFromDate(x.date) === state.weekFilter)
+    : state.tasks;
+  const done = t.filter(x=>x.status==='Done').length;
+  const approved = t.filter(x=>x.approval==='Approved').length;
+  const pending = t.filter(x=>x.approval==='To be approved'||x.approval==='In Progress').length;
+  const rejected = t.filter(x=>x.approval==='Rejected').length;
+  document.getElementById('statRow').innerHTML = `
+    <span class="stat-pill total"><b>${t.length}</b> tasks</span>
+    <span class="stat-pill" style="border-color:rgba(48,48,47,0.3);"><b>${done}</b> done</span>
+    <span class="stat-pill approved"><b>${approved}</b> approved</span>
+    <span class="stat-pill pending"><b>${pending}</b> pending</span>
+    <span class="stat-pill rejected"><b>${rejected}</b> rejected</span>
+  `;
 }
 
-// --- Toolbar ---
-const PLATFORM_FILTERS = ['YouTube', 'Instagram', 'WhatsApp', 'LinkedIn', 'Customer.io', 'Instantly', 'Loom', 'Blog'];
-
-function Toolbar({ filters, setFilters, view, setView, owners, platforms, onNewTask }) {
-  return (
-    <div className="toolbar" style={{flexDirection:'column',alignItems:'stretch',gap:'12px'}}>
-      <div style={{display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
-        <input type="text" placeholder="Search tasks..." value={filters.search} onChange={e => setFilters(f => ({...f, search: e.target.value}))} />
-        <select value={filters.owner} onChange={e => setFilters(f => ({...f, owner: e.target.value}))}>
-          <option value="">All owners</option>
-          {owners.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}>
-          <option value="">All statuses</option>
-          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select value={filters.approval} onChange={e => setFilters(f => ({...f, approval: e.target.value}))}>
-          <option value="">All approvals</option>
-          {APPROVAL_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
-        <button className="btn-text" onClick={() => setFilters({ search: '', owner: '', status: '', approval: '', platform: '' })}>Clear</button>
-        <div className="spacer"></div>
-        <div className="view-toggle">
-          <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>Board</button>
-          <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>List</button>
-        </div>
-        <button className="btn btn-primary" onClick={onNewTask}>+ New task</button>
-      </div>
-      <div style={{display:'flex',gap:'6px',flexWrap:'wrap',alignItems:'center'}}>
-        <span style={{fontSize:'10px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--ink-42)',marginRight:'4px'}}>Channel:</span>
-        <span className={`chip ${filters.platform === '' ? 'active' : ''}`} onClick={() => setFilters(f => ({...f, platform: ''}))}>All</span>
-        {PLATFORM_FILTERS.map(p => (
-          <span key={p} className={`chip ${filters.platform === p ? 'active' : ''}`} onClick={() => setFilters(f => ({...f, platform: f.platform === p ? '' : p}))}>{p}</span>
-        ))}
-      </div>
-    </div>
-  );
+function renderMain(){
+  const list = filteredTasks();
+  const main = document.getElementById('mainArea');
+  if(state.tasks.length === 0){
+    main.innerHTML = `<div class="empty-state"><h3>No tasks yet</h3>Create your first task to start planning content across channels.<br><br>
+    <button class="btn btn-primary" onclick="openTaskModal()">+ New task</button></div>`;
+    return;
+  }
+  if(list.length === 0){
+    const weekHint = state.weekFilter ? ` <button class="btn-text" onclick="setAllWeeks()">Show all weeks</button>` : '';
+    main.innerHTML = `<div class="empty-state"><h3>No matches</h3>Nothing fits the current filters.${state.weekFilter ? ' Nothing is scheduled this week yet.' : ''} <button class="btn-text" onclick="clearFilters()">Clear filters</button>${weekHint}</div>`;
+    return;
+  }
+  main.innerHTML = state.view === 'board' ? boardHtml(list) : listHtml(list);
+  if(state.view === 'board') attachDnD();
 }
 
-// --- Board View ---
-function BoardView({ tasks, onCardClick, onDrop }) {
-  const [dragOver, setDragOver] = useState(null);
-
-  if (tasks.length === 0) return <div className="empty-state"><h3>No tasks this week</h3><p>Try a different week or clear filters.</p></div>;
-
-  return (
-    <div className="board">
-      {STATUS_OPTIONS.map(status => {
-        const items = tasks.filter(t => (t.status || 'To Do') === status);
-        return (
-          <div key={status} className={`col ${dragOver === status ? 'dragover' : ''}`}
-            onDragOver={e => { e.preventDefault(); setDragOver(status); }}
-            onDragLeave={() => setDragOver(null)}
-            onDrop={e => { e.preventDefault(); setDragOver(null); const id = e.dataTransfer.getData('text/plain'); if (id) onDrop(id, status); }}>
-            <div className="col-head">
-              <span className="name">{status}</span>
-              <span className="count">{items.length}</span>
-            </div>
-            <div className="col-body">
-              {items.map(t => <TaskCard key={t.id} task={t} onClick={() => onCardClick(t)} />)}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function TaskCard({ task, onClick }) {
-  return (
-    <div className="card" draggable="true" onClick={onClick}
-      onDragStart={e => { e.dataTransfer.setData('text/plain', task.id); e.currentTarget.classList.add('dragging'); }}
-      onDragEnd={e => e.currentTarget.classList.remove('dragging')}>
-      <div className="ctitle">{task.content || '(untitled)'}</div>
-      <div className="cmeta">
-        <span>{task.type || '—'}</span>
-        <span>{fmtDate(task.date)}{task.date ? `, ${dayName(task.date)}` : ''}</span>
-      </div>
-      <div className="tags">
-        {(task.platforms || []).length > 0
-          ? task.platforms.map(p => <span key={p} className="tag">{p}</span>)
-          : <span className="tag" style={{opacity: 0.4}}>no tag</span>}
-      </div>
-      <div className="card-foot">
-        <div className="avatar" title={task.owner}>{initials(task.owner)}</div>
-        <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
-          {task.link && <span style={{fontSize:'12px'}}>🔗</span>}
-          <span className={pillClass(task.approval)}>{task.approval || 'Draft'}</span>
-        </div>
+function cardHtml(t){
+  const assetCount = (t.assets||[]).length;
+  return `
+  <div class="card" draggable="true" data-id="${t.id}" onclick="openTaskModal('${t.id}')">
+    <div class="ctitle">${esc(t.content) || '(untitled task)'}</div>
+    <div class="cmeta"><span>${esc(t.type||'—')}</span><span>${fmtDate(t.date)}${t.date?', '+dayName(t.date):''}</span></div>
+    <div class="tags">${(t.platforms||[]).map(p=>`<span class="tag">${esc(p)}</span>`).join('') || '<span class="tag" style="opacity:.4">no tag</span>'}</div>
+    <div class="card-foot">
+      <div class="owner-badge" title="${esc(t.owner)}">${initials(t.owner)}</div>
+      <div class="icon-row">
+        ${t.link ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.07 0l2-2a5 5 0 00-7.07-7.07l-1 1"/><path d="M14 11a5 5 0 00-7.07 0l-2 2a5 5 0 007.07 7.07l1-1"/></svg>` : ''}
+        ${assetCount ? `<span style="font-size:10px;">📎 ${assetCount}</span>` : ''}
+        <span class="approval-pill ${apClass(t.approval)}">${esc(t.approval||'Draft')}</span>
       </div>
     </div>
-  );
+  </div>`;
 }
 
-// --- List View ---
-function ListView({ tasks, onRowClick, showAllWeeks }) {
-  if (tasks.length === 0) return <div className="empty-state"><h3>No tasks</h3></div>;
+function boardHtml(list){
+  return `<div class="board">${STATUS_OPTIONS.map(status=>{
+    const items = list.filter(t=>(t.status||'To Do')===status);
+    return `<div class="col" data-status="${esc(status)}">
+      <div class="col-head"><span class="name">${esc(status)}</span><span class="count">${items.length}</span></div>
+      <div class="col-body" data-status="${esc(status)}">${items.map(cardHtml).join('')}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
 
-  const sorted = [...tasks].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+function listHtml(list){
+  const sorted = [...list].sort((a,b)=> (a.date||'9999').localeCompare(b.date||'9999'));
   const groups = {};
-  sorted.forEach(t => {
-    if (!t.date) { (groups['No date'] = groups['No date'] || []).push(t); return; }
-    const mon = getMondayOf(new Date(t.date + 'T00:00:00'));
-    const lbl = weekLabel(mon);
-    (groups[lbl] = groups[lbl] || []).push(t);
+  sorted.forEach(t=>{
+    const wk = weekLabel(t.date);
+    (groups[wk] = groups[wk] || []).push(t);
   });
-
-  return (
-    <div>
-      {Object.entries(groups).map(([wk, items]) => (
-        <div key={wk}>
-          {showAllWeeks && <div className="week-group-title">{wk}</div>}
-          <div className="list-head">
-            <span>Date</span><span>Task</span><span>Platforms</span><span>Status</span><span>Owner</span><span>Approval</span><span></span>
-          </div>
-          {items.map(t => (
-            <div key={t.id} className="list-row" onClick={() => onRowClick(t)}>
-              <div className="date-cell"><b>{fmtDate(t.date)}</b>{dayName(t.date)}</div>
-              <div className="title-cell">{t.content || '(untitled)'}<span className="type-badge">{t.type}</span></div>
-              <div>{(t.platforms || []).slice(0, 2).map(p => <span key={p} className="tag">{p}</span>)}{(t.platforms||[]).length > 2 && ` +${t.platforms.length - 2}`}</div>
-              <div>{t.status || 'To Do'}</div>
-              <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div className="avatar" style={{width:'18px',height:'18px',fontSize:'8px'}}>{initials(t.owner)}</div>{t.owner}</div>
-              <div><span className={pillClass(t.approval)}>{t.approval || 'Draft'}</span></div>
-              <div>{t.link ? '🔗' : ''}</div>
-            </div>
-          ))}
+  return Object.keys(groups).map(wk => `
+    <div class="week-block">
+      ${state.weekFilter ? '' : `<div class="week-title">${esc(wk)}</div>`}
+      <div class="list-head"><span>Date</span><span>Task</span><span class="lr-plat">Platforms</span><span>Status</span><span class="lr-owner">Owner</span><span>Approval</span><span></span></div>
+      ${groups[wk].map(t=>`
+        <div class="list-row" onclick="openTaskModal('${t.id}')">
+          <div class="lr-date">${t.date?fmtDate(t.date):'—'}<b>${dayName(t.date)}</b></div>
+          <div class="lr-title">${esc(t.content)||'(untitled)'}<span class="type">${esc(t.type||'')}</span></div>
+          <div class="lr-plat">${(t.platforms||[]).slice(0,2).map(p=>`<span class="tag">${esc(p)}</span>`).join(' ')}${(t.platforms||[]).length>2?` +${t.platforms.length-2}`:''}</div>
+          <div>${esc(t.status||'To Do')}</div>
+          <div class="lr-owner"><div class="owner-badge" style="display:inline-flex;">${initials(t.owner)}</div></div>
+          <div><span class="approval-pill ${apClass(t.approval)}">${esc(t.approval||'Draft')}</span></div>
+          <div>${(t.assets||[]).length?'📎':''}</div>
         </div>
-      ))}
+      `).join('')}
     </div>
-  );
+  `).join('');
 }
 
-// --- Analytics ---
-function AnalyticsView({ stats, tasks }) {
-  const maxOwner = stats.by_owner?.length ? Math.max(...stats.by_owner.map(x => x[1])) : 1;
-  const maxPlat = stats.by_platform?.length ? Math.max(...stats.by_platform.map(x => x[1])) : 1;
-
-  return (
-    <div className="analytics-grid">
-      <div className="chart-card">
-        <h3>Tasks by Owner</h3>
-        <div className="bar-chart">
-          {(stats.by_owner || []).map(([name, count]) => (
-            <div key={name} className="bar-row">
-              <span className="bar-label">{name}</span>
-              <div className="bar-track"><div className="bar-fill" style={{width: `${(count/maxOwner)*100}%`}}><span>{count}</span></div></div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="chart-card">
-        <h3>Tasks by Platform</h3>
-        <div className="bar-chart">
-          {(stats.by_platform || []).map(([name, count]) => (
-            <div key={name} className="bar-row">
-              <span className="bar-label">{name}</span>
-              <div className="bar-track"><div className="bar-fill" style={{width: `${(count/maxPlat)*100}%`, background: '#00857f'}}><span>{count}</span></div></div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="chart-card">
-        <h3>Status Breakdown</h3>
-        <div className="bar-chart">
-          {[['Done', stats.done], ['In Progress', stats.in_progress], ['To Do', stats.todo], ['Blocked', stats.blocked]].map(([name, count]) => (
-            <div key={name} className="bar-row">
-              <span className="bar-label">{name}</span>
-              <div className="bar-track"><div className="bar-fill" style={{width: `${(count/(stats.total||1))*100}%`, background: name==='Done'?'var(--teal)':name==='Blocked'?'var(--rust)':'var(--amber)'}}><span>{count||0}</span></div></div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="chart-card">
-        <h3>Approval Breakdown</h3>
-        <div className="bar-chart">
-          {[['Approved', stats.approved], ['Pending', stats.pending], ['Rejected', stats.rejected], ['Draft', stats.total - stats.approved - stats.pending - stats.rejected]].map(([name, count]) => (
-            <div key={name} className="bar-row">
-              <span className="bar-label">{name}</span>
-              <div className="bar-track"><div className="bar-fill" style={{width: `${(count/(stats.total||1))*100}%`, background: name==='Approved'?'var(--teal)':name==='Rejected'?'var(--rust)':'var(--amber)'}}><span>{count||0}</span></div></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+function weekLabel(dateStr){
+  if(!dateStr) return 'No date';
+  const d = new Date(dateStr+'T00:00:00');
+  if(isNaN(d)) return 'No date';
+  const opts = {month:'short',day:'numeric'};
+  const {monday, sunday} = mondaySundayOf(d);
+  return `Week of ${monday.toLocaleDateString('en-US',opts)} – ${sunday.toLocaleDateString('en-US',opts)}`;
 }
 
-// --- Task Modal ---
-function TaskModal({ task, platforms, owners, onSave, onDelete, onClose }) {
-  const [form, setForm] = useState({
-    content: task?.content || '',
-    type: task?.type || TYPE_OPTIONS[0],
-    date: task?.date || new Date().toISOString().slice(0, 10),
-    owner: task?.owner || owners[0] || '',
-    status: task?.status || 'To Do',
-    approval: task?.approval || 'Draft',
-    comment: task?.comment || '',
-    link: task?.link || '',
-    priority: task?.priority || '',
-    platforms: task?.platforms || [],
+/* ---------------- weekly navigation ---------------- */
+function mondaySundayOf(d){
+  const day = d.getDay();
+  const monday = new Date(d); monday.setDate(d.getDate() - ((day+6)%7));
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  return {monday, sunday};
+}
+function toKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function weekKeyFromDate(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  if(isNaN(d)) return null;
+  return toKey(mondaySundayOf(d).monday);
+}
+function currentWeekKey(){ return toKey(mondaySundayOf(new Date()).monday); }
+function shiftWeek(delta){
+  const base = state.weekFilter ? new Date(state.weekFilter+'T00:00:00') : new Date();
+  base.setDate(base.getDate() + delta*7);
+  state.weekFilter = toKey(mondaySundayOf(base).monday);
+  renderWeekNav();
+  renderStats();
+  renderMain();
+}
+function goToCurrentWeek(){ state.weekFilter = currentWeekKey(); renderWeekNav(); renderStats(); renderMain(); }
+function setAllWeeks(){ state.weekFilter = null; renderWeekNav(); renderStats(); renderMain(); }
+function renderWeekNav(){
+  const el = document.getElementById('weekNav');
+  if(!el) return;
+  if(!state.weekFilter){
+    el.innerHTML = `
+      <button class="btn-ghost btn" style="padding:8px 12px;" onclick="goToCurrentWeek()">This week</button>
+      <span style="font-family:'Fraunces',serif;font-style:italic;font-size:14px;color:var(--ink-65);">Showing all weeks</span>
+    `;
+    return;
+  }
+  const monday = new Date(state.weekFilter+'T00:00:00');
+  const {sunday} = mondaySundayOf(monday);
+  const opts = {month:'short',day:'numeric'};
+  const isCurrent = state.weekFilter === currentWeekKey();
+  el.innerHTML = `
+    <button class="icon-btn" onclick="shiftWeek(-1)" title="Previous week">‹</button>
+    <span style="font-family:'Fraunces',serif;font-style:italic;font-size:15px;min-width:210px;text-align:center;">
+      Week of ${monday.toLocaleDateString('en-US',opts)} – ${sunday.toLocaleDateString('en-US',opts)}${isCurrent?' <span style="font-family:Inter,sans-serif;font-style:normal;font-size:9px;color:var(--teal);border:1px solid var(--teal-line);background:var(--teal-dim);padding:2px 7px;border-radius:9px;vertical-align:middle;">CURRENT</span>':''}
+    </span>
+    <button class="icon-btn" onclick="shiftWeek(1)" title="Next week">›</button>
+    <button class="btn-text" onclick="setAllWeeks()">Show all weeks</button>
+  `;
+}
+
+/* ---------------- drag & drop ---------------- */
+function attachDnD(){
+  document.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('dragstart', e=>{ card.classList.add('dragging'); e.dataTransfer.setData('text/plain', card.dataset.id); });
+    card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
   });
-
-  const togglePlatform = (p) => {
-    setForm(f => ({
-      ...f,
-      platforms: f.platforms.includes(p) ? f.platforms.filter(x => x !== p) : [...f.platforms, p]
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.content.trim()) { showToast('Add a description first'); return; }
-    onSave(form);
-  };
-
-  return (
-    <div className="overlay open" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal">
-        <div className="modal-head">
-          <h2>{task ? 'Edit Task' : 'New Task'}</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            <div className="field">
-              <label>Content / Description</label>
-              <textarea value={form.content} onChange={e => setForm(f => ({...f, content: e.target.value}))} placeholder="e.g. Carousel post on payday effect" />
-            </div>
-            <div className="row2">
-              <div className="field">
-                <label>Type</label>
-                <select value={form.type} onChange={e => setForm(f => ({...f, type: e.target.value}))}>
-                  {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>Date</label>
-                <input type="date" value={form.date} onChange={e => setForm(f => ({...f, date: e.target.value}))} />
-              </div>
-            </div>
-            <div className="field">
-              <label>Platform Tags</label>
-              <div className="platform-picker">
-                {platforms.map(p => (
-                  <span key={p} className={`plat-opt ${form.platforms.includes(p) ? 'sel' : ''}`} onClick={() => togglePlatform(p)}>{p}</span>
-                ))}
-              </div>
-            </div>
-            <div className="row3">
-              <div className="field">
-                <label>Owner</label>
-                <select value={form.owner} onChange={e => setForm(f => ({...f, owner: e.target.value}))}>
-                  {owners.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>Status</label>
-                <select value={form.status} onChange={e => setForm(f => ({...f, status: e.target.value}))}>
-                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>Approval</label>
-                <select value={form.approval} onChange={e => setForm(f => ({...f, approval: e.target.value}))}>
-                  {APPROVAL_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="row2">
-              <div className="field">
-                <label>Comment</label>
-                <textarea value={form.comment} onChange={e => setForm(f => ({...f, comment: e.target.value}))} placeholder="Notes, blockers..." />
-              </div>
-              <div className="field">
-                <label>Link</label>
-                <input type="url" value={form.link} onChange={e => setForm(f => ({...f, link: e.target.value}))} placeholder="https://..." />
-                <div style={{marginTop:'8px'}}>
-                  <label>Priority</label>
-                  <select value={form.priority} onChange={e => setForm(f => ({...f, priority: e.target.value}))}>
-                    <option value="">None</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="modal-foot">
-            {task && <button type="button" className="btn btn-danger btn-sm" onClick={() => onDelete(task.id)}>Delete</button>}
-            {!task && <div></div>}
-            <div style={{display:'flex',gap:'10px'}}>
-              <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn btn-primary">Save task</button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+  document.querySelectorAll('.col-body').forEach(col=>{
+    col.addEventListener('dragover', e=>{ e.preventDefault(); col.closest('.col').classList.add('dragover'); });
+    col.addEventListener('dragleave', ()=> col.closest('.col').classList.remove('dragover'));
+    col.addEventListener('drop', async e=>{
+      e.preventDefault();
+      col.closest('.col').classList.remove('dragover');
+      const id = e.dataTransfer.getData('text/plain');
+      const task = state.tasks.find(t=>t.id===id);
+      if(task){
+        const newStatus = col.dataset.status;
+        try{
+          await updateStatusOnServer(id, newStatus);
+          task.status = newStatus;
+          render();
+          showToast('Moved to '+newStatus);
+        }catch(err){ showToast('Status update failed'); }
+      }
+    });
+  });
 }
 
-// --- Assets / OneDrive View ---
-function AssetsView() {
-  const [authStatus, setAuthStatus] = useState(null);
-  const [clientId, setClientId] = useState('');
-  const [deviceCode, setDeviceCode] = useState(null);
-  const [files, setFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadMsg, setUploadMsg] = useState('');
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef(null);
-
-  const checkStatus = async () => {
-    const s = await api.get('/api/onedrive/status');
-    setAuthStatus(s);
-    if (s.authenticated) loadFiles();
-  };
-
-  const loadFiles = async () => {
-    try {
-      const r = await api.get('/api/onedrive/files');
-      setFiles(r.files || []);
-    } catch (e) { console.error(e); }
-  };
-
-  useEffect(() => { checkStatus(); }, []);
-
-  const saveConfig = async () => {
-    if (!clientId.trim()) { showToast('Enter an Azure App Client ID'); return; }
-    await api.post('/api/onedrive/config', { client_id: clientId.trim() });
-    showToast('Client ID saved');
-    checkStatus();
-  };
-
-  const startLogin = async () => {
-    setDeviceCode(null);
-    try {
-      const r = await fetch('/api/onedrive/login', { method: 'POST' });
-      if (!r.ok) { const e = await r.json(); showToast(e.detail || 'Login failed'); return; }
-      const data = await r.json();
-      setDeviceCode(data);
-    } catch (e) { showToast('Login request failed'); }
-  };
-
-  const completeLogin = async () => {
-    try {
-      const r = await fetch('/api/onedrive/login/complete', { method: 'POST' });
-      if (!r.ok) { const e = await r.json(); showToast(e.detail || 'Not yet authenticated'); return; }
-      setDeviceCode(null);
-      showToast('Connected to OneDrive!');
-      checkStatus();
-    } catch (e) { showToast('Completion failed'); }
-  };
-
-  const handleUpload = async (fileList) => {
-    if (!fileList || fileList.length === 0) return;
-    setUploading(true);
-    setUploadMsg('');
-    let success = 0;
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i];
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('subfolder', '');
-      try {
-        const r = await fetch('/api/onedrive/upload', { method: 'POST', body: fd });
-        if (r.ok) { success++; }
-        else { const e = await r.json(); setUploadMsg(`Failed: ${e.detail}`); }
-      } catch (e) { setUploadMsg('Upload error'); }
-    }
-    setUploading(false);
-    if (success > 0) {
-      showToast(`Uploaded ${success} file(s) to OneDrive`);
-      loadFiles();
-    }
-  };
-
-  const handleLogout = async () => {
-    await fetch('/api/onedrive/logout', { method: 'POST' });
-    setAuthStatus({ authenticated: false });
-    setFiles([]);
-    showToast('Disconnected');
-  };
-
-  const formatSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  const isConnected = authStatus?.authenticated;
-
-  return (
-    <div>
-      <div className="assets-panel">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
-          <h3>OneDrive — Marketing Assets</h3>
-          {authStatus && (
-            <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
-              <span className="dot"></span>
-              {isConnected ? `Connected as ${authStatus.account}` : 'Not connected'}
-            </span>
-          )}
-        </div>
-
-        {!isConnected && (
-          <>
-            {authStatus?.reason === 'no_client_id' && (
-              <div style={{marginBottom:'16px'}}>
-                <p style={{fontSize:'12px',color:'var(--ink-65)',marginBottom:'8px'}}>
-                  To connect OneDrive, you need an Azure AD App Client ID.<br/>
-                  <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps" target="_blank" style={{color:'var(--teal)'}}>Register an app →</a> (set redirect to http://localhost, add Files.ReadWrite.All permission)
-                </p>
-                <div className="config-form">
-                  <input type="text" placeholder="Paste your Azure App Client ID here..." value={clientId} onChange={e => setClientId(e.target.value)} />
-                  <button className="btn btn-primary btn-sm" onClick={saveConfig}>Save</button>
-                </div>
-              </div>
-            )}
-
-            {authStatus?.reason !== 'no_client_id' && !deviceCode && (
-              <button className="btn btn-primary" onClick={startLogin}>Connect to OneDrive</button>
-            )}
-
-            {deviceCode && (
-              <div className="device-code-box">
-                <p style={{marginBottom:'8px',fontWeight:600}}>Sign in to Microsoft:</p>
-                <p>1. Go to <a href={deviceCode.verification_uri} target="_blank" style={{color:'var(--teal)',fontWeight:600}}>{deviceCode.verification_uri}</a></p>
-                <p>2. Enter this code:</p>
-                <div className="code">{deviceCode.user_code}</div>
-                <p style={{marginTop:'12px'}}>3. After signing in, click the button below:</p>
-                <button className="btn btn-primary btn-sm" style={{marginTop:'10px'}} onClick={completeLogin}>I've signed in ✓</button>
-              </div>
-            )}
-          </>
-        )}
-
-        {isConnected && (
-          <>
-            <div className="upload-zone"
-              className={`upload-zone ${dragOver ? 'dragover' : ''}`}
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files); }}>
-              <div className="icon">☁️</div>
-              <p><strong>Click to upload</strong> or drag & drop files here</p>
-              <p style={{fontSize:'11px',color:'var(--ink-42)'}}>Files will be uploaded to your OneDrive Marketing Assets folder</p>
-            </div>
-            <input ref={fileInputRef} type="file" multiple style={{display:'none'}} onChange={e => handleUpload(e.target.files)} />
-
-            {uploading && (
-              <div className="upload-progress">
-                <div className="bar-track"><div className="bar-fill" style={{width:'100%',animation:'pulse 1s infinite alternate'}}></div></div>
-                <p style={{fontSize:'11px',color:'var(--ink-42)',marginTop:'4px'}}>Uploading...</p>
-              </div>
-            )}
-            {uploadMsg && <p style={{fontSize:'12px',color:'var(--rust)',marginTop:'8px'}}>{uploadMsg}</p>}
-
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'20px',marginBottom:'8px'}}>
-              <h3 style={{fontSize:'14px'}}>Files in Marketing Assets</h3>
-              <div style={{display:'flex',gap:'8px'}}>
-                <button className="btn btn-ghost btn-sm" onClick={loadFiles}>↻ Refresh</button>
-                <button className="btn-text" onClick={handleLogout}>Disconnect</button>
-              </div>
-            </div>
-
-            {files.length === 0 && <p style={{fontSize:'12px',color:'var(--ink-42)',padding:'20px 0',textAlign:'center'}}>No files yet. Upload your first asset above.</p>}
-
-            <div className="file-grid">
-              {files.map((f, i) => (
-                <div key={i} className="file-card">
-                  <div className="fname">{f.is_folder ? '📁' : '📄'} {f.name}</div>
-                  <div className="fmeta">{f.is_folder ? 'Folder' : formatSize(f.size)}{f.modified ? ` • ${new Date(f.modified).toLocaleDateString()}` : ''}</div>
-                  {f.web_url && <a href={f.web_url} target="_blank">Open in OneDrive →</a>}
-                </div>
-              ))}
-            </div>
-
-            <button className="btn-text" style={{marginTop:'12px'}} onClick={handleLogout}>Disconnect OneDrive</button>
-          </>
-        )}
-      </div>
-    </div>
-  );
+/* ---------------- modal ---------------- */
+function toggleUtm(){
+  const b = document.getElementById('utmBody');
+  const open = b.style.display !== 'none';
+  b.style.display = open ? 'none' : 'block';
+  document.getElementById('utmChevron').textContent = open ? '▸' : '▾';
+}
+function generateUtm(){
+  let base = document.getElementById('utm_base').value.trim();
+  if(!base){ showToast('Add a base URL first'); return; }
+  if(!/^https?:\/\//i.test(base)) base = 'https://'+base;
+  const source = document.getElementById('utm_source').value.trim() || (state.modalPlatforms[0]||'direct').toLowerCase();
+  const medium = document.getElementById('utm_medium').value;
+  const campaign = slugify(document.getElementById('utm_campaign').value || document.getElementById('f_content').value || 'campaign');
+  const sep = base.includes('?') ? '&' : '?';
+  const url = `${base}${sep}utm_source=${encodeURIComponent(source)}&utm_medium=${encodeURIComponent(medium)}&utm_campaign=${encodeURIComponent(campaign)}`;
+  document.getElementById('utm_output').value = url;
+}
+function useUtmAsLink(){
+  const v = document.getElementById('utm_output').value;
+  if(!v){ showToast('Generate a link first'); return; }
+  document.getElementById('f_link').value = v;
+  showToast('Set as task link');
+}
+function copyField(id){
+  const el = document.getElementById(id);
+  if(!el.value){ showToast('Nothing to copy yet'); return; }
+  navigator.clipboard?.writeText(el.value).then(()=>showToast('Copied to clipboard')).catch(()=>showToast('Could not copy'));
 }
 
-// --- Render ---
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+function renderPlatformPicker(){
+  document.getElementById('platformPicker').innerHTML = allPlatforms().map(p=>
+    `<span class="tag-opt ${state.modalPlatforms.includes(p)?'sel':''}" onclick="toggleModalPlatform('${p.replace(/'/g,"\\'")}')">${esc(p)}</span>`
+  ).join('');
+}
+function toggleModalPlatform(p){
+  const i = state.modalPlatforms.indexOf(p);
+  if(i>-1) state.modalPlatforms.splice(i,1); else state.modalPlatforms.push(p);
+  renderPlatformPicker();
+}
+async function addCustomPlatform(){
+  const input = document.getElementById('newPlatformInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(!allPlatforms().some(p=>p.toLowerCase()===val.toLowerCase())){
+    state.customPlatforms.push(val);
+    await saveCustomTags();
+    populateStaticSelects();
+  }
+  if(!state.modalPlatforms.includes(val)) state.modalPlatforms.push(val);
+  input.value='';
+  renderPlatformPicker();
+}
+
+function renderAssetList(){
+  const box = document.getElementById('assetList');
+  if(!state.modalAssets.length){ box.innerHTML=''; return; }
+  box.innerHTML = state.modalAssets.map(a => `
+    <div class="asset-item">
+      <div class="aname">📄 <span>${esc(a.name)}</span> <span style="color:var(--ink-42);flex-shrink:0;">${a.size?Math.round(a.size/1024)+'KB':''}</span></div>
+      <div class="aacts">
+        <button onclick="viewAsset('${a.id}')">View</button>
+        <button onclick="removeAsset('${a.id}')">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function viewAsset(assetId){
+  if(!state.editingId){ showToast('Save the task first'); return; }
+  const blob = await fetchAssetBlob(state.editingId, assetId);
+  if(!blob){ showToast('Could not load asset'); return; }
+  const content = document.getElementById('lightboxContent');
+  if(blob.type.startsWith('image/')) content.innerHTML = `<img src="${blob.dataUrl}">`;
+  else if(blob.type.startsWith('video/')) content.innerHTML = `<video src="${blob.dataUrl}" controls autoplay></video>`;
+  else { const a=document.createElement('a'); a.href=blob.dataUrl; a.download=blob.name; a.click(); return; }
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); document.getElementById('lightboxContent').innerHTML=''; }
+
+async function removeAsset(assetId){
+  state.modalAssets = state.modalAssets.filter(a=>a.id!==assetId);
+  renderAssetList();
+  if(state.editingId){ await deleteAssetBlob(state.editingId, assetId); }
+}
+
+function setupDropzone(){
+  const dz = document.getElementById('dropzone');
+  const input = document.getElementById('fileInput');
+  input.onchange = () => handleFiles(input.files);
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+  dz.ondragleave = () => dz.classList.remove('drag');
+  dz.ondrop = e => { e.preventDefault(); dz.classList.remove('drag'); handleFiles(e.dataTransfer.files); };
+}
+async function handleFiles(files){
+  const MAX = 3.5*1024*1024;
+  for(const file of files){
+    if(file.size > MAX){ showToast(`${file.name} is too large (max ~3.5MB)`); continue; }
+    const dataUrl = await new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const assetId = uid('a');
+    const meta = { id: assetId, name: file.name, type: file.type||'application/octet-stream', size: file.size };
+    state.modalAssets.push(meta);
+    // if editing an existing saved task, persist immediately; else stash in a temp buffer keyed by assetId
+    if(state.editingId){
+      await storeAssetBlob(state.editingId, assetId, { name: file.name, type: meta.type, dataUrl });
+    } else {
+      state._pendingAssetBlobs = state._pendingAssetBlobs || {};
+      state._pendingAssetBlobs[assetId] = { name: file.name, type: meta.type, dataUrl };
+    }
+  }
+  document.getElementById('fileInput').value = '';
+  renderAssetList();
+}
+
+function openTaskModal(id){
+  state.editingId = id || null;
+  state._pendingAssetBlobs = {};
+  const task = id ? state.tasks.find(t=>t.id===id) : null;
+
+  document.getElementById('modalTitle').textContent = task ? 'Edit task' : 'New task';
+  document.getElementById('deleteBtn').style.display = task ? 'inline-block' : 'none';
+  document.getElementById('f_content').value = task?.content || '';
+  document.getElementById('f_type').value = task?.type || '';
+  document.getElementById('f_date').value = task?.date || (!task && state.weekFilter ? state.weekFilter : '');
+  document.getElementById('f_owner').value = task?.owner || allOwners()[0];
+  document.getElementById('f_status').value = task?.status || 'To Do';
+  document.getElementById('f_approval').value = task?.approval || 'Draft';
+  document.getElementById('f_comment').value = task?.comment || '';
+  document.getElementById('f_link').value = task?.link || '';
+  document.getElementById('utm_base').value='';
+  document.getElementById('utm_source').value='';
+  document.getElementById('utm_campaign').value='';
+  document.getElementById('utm_output').value='';
+  document.getElementById('utmBody').style.display='none';
+  document.getElementById('utmChevron').textContent='▸';
+
+  state.modalPlatforms = task ? [...(task.platforms||[])] : [];
+  state.modalAssets = task ? [...(task.assets||[])] : [];
+  renderPlatformPicker();
+  renderAssetList();
+  setupDropzone();
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  state.editingId = null;
+  state._pendingAssetBlobs = {};
+}
+
+async function saveTask(){
+  const content = document.getElementById('f_content').value.trim();
+  if(!content){ showToast('Add a task description first'); return; }
+  const isNew = !state.editingId;
+  const id = state.editingId || uid('t');
+  const payload = {
+    id,
+    content,
+    type: document.getElementById('f_type').value.trim(),
+    date: document.getElementById('f_date').value,
+    owner: document.getElementById('f_owner').value,
+    status: document.getElementById('f_status').value,
+    approval: document.getElementById('f_approval').value,
+    comment: document.getElementById('f_comment').value.trim(),
+    link: document.getElementById('f_link').value.trim(),
+    platforms: [...state.modalPlatforms],
+    assets: [...state.modalAssets],
+    updatedAt: Date.now(),
+    createdAt: isNew ? Date.now() : (state.tasks.find(t=>t.id===id)?.createdAt || Date.now())
+  };
+
+  try{
+    const newId = await saveTaskToServer(payload, isNew);
+    payload.id = newId;
+
+    if(isNew){
+      state.tasks.push(payload);
+    } else {
+      const idx = state.tasks.findIndex(t=>t.id===id);
+      state.tasks[idx] = payload;
+    }
+
+    if(payload.owner && !allOwners().some(o=>o.toLowerCase()===payload.owner.toLowerCase())){
+      state.customOwners.push(payload.owner);
+    }
+
+    populateStaticSelects();
+    closeModal();
+    render();
+    showToast(isNew ? 'Task created' : 'Task saved');
+  }catch(e){
+    console.error(e);
+    showToast('Save failed — check connection');
+  }
+}
+
+async function deleteCurrentTask(){
+  if(!state.editingId) return;
+  if(!confirm('Delete this task? This cannot be undone.')) return;
+  const id = state.editingId;
+  try{
+    await deleteTaskFromServer(id);
+    state.tasks = state.tasks.filter(t=>t.id!==id);
+    closeModal();
+    render();
+    showToast('Task deleted');
+  }catch(e){
+    console.error(e);
+    showToast('Delete failed — check connection');
+  }
+}
+
+/* ---------------- init ---------------- */
+loadAll();
 </script>
 </body>
 </html>

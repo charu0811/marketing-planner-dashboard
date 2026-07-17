@@ -499,12 +499,16 @@ function render(){
 }
 
 function renderStats(){
-  const t = state.tasks;
+  const t = state.weekFilter
+    ? state.tasks.filter(x => x.date && weekKeyFromDate(x.date) === state.weekFilter)
+    : state.tasks;
+  const done = t.filter(x=>x.status==='Done').length;
   const approved = t.filter(x=>x.approval==='Approved').length;
   const pending = t.filter(x=>x.approval==='To be approved'||x.approval==='In Progress').length;
   const rejected = t.filter(x=>x.approval==='Rejected').length;
   document.getElementById('statRow').innerHTML = `
     <span class="stat-pill total"><b>${t.length}</b> tasks</span>
+    <span class="stat-pill" style="border-color:rgba(48,48,47,0.3);"><b>${done}</b> done</span>
     <span class="stat-pill approved"><b>${approved}</b> approved</span>
     <span class="stat-pill pending"><b>${pending}</b> pending</span>
     <span class="stat-pill rejected"><b>${rejected}</b> rejected</span>
@@ -611,10 +615,11 @@ function shiftWeek(delta){
   base.setDate(base.getDate() + delta*7);
   state.weekFilter = toKey(mondaySundayOf(base).monday);
   renderWeekNav();
+  renderStats();
   renderMain();
 }
-function goToCurrentWeek(){ state.weekFilter = currentWeekKey(); renderWeekNav(); renderMain(); }
-function setAllWeeks(){ state.weekFilter = null; renderWeekNav(); renderMain(); }
+function goToCurrentWeek(){ state.weekFilter = currentWeekKey(); renderWeekNav(); renderStats(); renderMain(); }
+function setAllWeeks(){ state.weekFilter = null; renderWeekNav(); renderStats(); renderMain(); }
 function renderWeekNav(){
   const el = document.getElementById('weekNav');
   if(!el) return;
