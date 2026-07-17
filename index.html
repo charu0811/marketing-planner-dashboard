@@ -240,6 +240,7 @@
     <select id="featureFilter" onchange="onFilterChange()"><option value="">All features</option></select>
     <button class="chip-toggle" id="featureOnlyBtn" onclick="toggleFeatureOnly()">Features only</button>
     <button class="chip-toggle" id="manageFeatureInlineBtn" onclick="toggleInlineFeaturePanel()">Manage Features</button>
+    <button class="chip-toggle" id="timelineToggleBtn" onclick="toggleTimeline()">Timeline</button>
     <div id="platformFilterChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
     <button class="btn-text" onclick="clearFilters()">Clear filters</button>
     <div class="spacer"></div>
@@ -650,6 +651,7 @@ function render(){
   renderWeekNav();
   renderFeatureTimeline();
   renderMain();
+  document.getElementById('timelineToggleBtn').classList.toggle('active', timelineVisible);
 }
 
 function renderStats(){
@@ -810,6 +812,8 @@ function renderWeekNav(){
 function renderFeatureTimeline(){
   const el = document.getElementById('featureTimeline');
   if(!el) return;
+  if(!timelineVisible){ el.style.display='none'; return; }
+  el.style.display='';
   if(!FEATURES.length){ el.innerHTML=''; return; }
 
   // Build stats for each feature
@@ -1355,6 +1359,13 @@ async function addFeatureInline(){
 
 /* ---------------- OneDrive Integration ---------------- */
 let odState = { authenticated: false, flow: null };
+let timelineVisible = true;
+
+function toggleTimeline(){
+  timelineVisible = !timelineVisible;
+  document.getElementById('featureTimeline').style.display = timelineVisible ? '' : 'none';
+  document.getElementById('timelineToggleBtn').classList.toggle('active', timelineVisible);
+}
 
 function toggleOneDrivePanel(){
   const panel = document.getElementById('oneDrivePanel');
