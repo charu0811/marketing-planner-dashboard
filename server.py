@@ -11,8 +11,11 @@ import uuid
 import os
 import database as db
 import onedrive_upload as od
+import cloud_storage as cs
 
 app = FastAPI(title="Wylth Marketing Task Manager")
+
+# Note: Blob storage is now frontend-only (no backend routes needed)
 
 # --- Init ---
 db.init_db()
@@ -262,6 +265,83 @@ async def onedrive_files(subfolder: str = ""):
 @app.post("/api/onedrive/logout")
 async def onedrive_logout():
     return od.logout()
+
+
+# --- Cloud Storage API Routes (S3 / Azure Blob) ---
+@app.get("/api/cloud/status")
+async def cloud_status():
+    return cs.get_status()
+
+
+@app.post("/api/cloud/config/s3")
+async def cloud_config_s3(body: dict):
+    access_key_id = body.get("access_key_id", "").strip()
+    secret_access_key = body.get("secret_access_key", "").strip()
+    bucket_name = body.get("bucket_name", "").strip()
+    region = body.get("region", "us-east-1").strip()
+    folder_prefix = body.get("folder_prefix", "marketing-assets/")
+    
+    if not access_key_id or not secret_access_key or not bucket_name:
+        raise HTTPException(status_code=400, detail="access_key_id, secret_access_key, and bucket_name are required")
+    
+    result = cs.configure_s3(access_key_id, secret_access_key, bucket_name, region, folder_prefix)
+    return result
+
+
+@app.post("/api/cloud/config/azure")
+async def cloud_config_azure(body: dict):
+    connection_string = body.get("connection_string", "").strip()
+    container_name = body.get("container_name", "").strip()
+    folder_prefix = body.get("folder_prefix", "marketing-assets/")
+    
+    if not connection_string or not container_name:
+        raise HTTPException(status_code=400, detail="connection_string and container_name are required")
+    
+    result = cs.configure_azure(connection_string, container_name, folder_prefix)
+    return result
+
+
+@app.post("/api/cloud/upload")
+async def cloud_upload(file: UploadFile = File(...), subfolder: str = Form("")):
+    file_bytes = await file.read()
+    if len(file_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(file_bytes) > 100 * 1024 * 1024:  # 100MB limit
+        raise HTTPException(status_code=413, detail="File too large (max 100MB)")
+    
+    result = cs.upload_file(file_bytes, file.filename, subfolder or None)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@app.get("/api/cloud/files")
+async def cloud_files(subfolder: str = ""):
+    result = cs.list_files(subfolder or None)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@app.get("/api/cloud/preview/{file_path:path}")
+async def cloud_preview(file_path: str):
+    result = cs.get_preview_url(file_path)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@app.delete("/api/cloud/files/{file_path:path}")
+async def cloud_delete(file_path: str):
+    result = cs.delete_file(file_path)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@app.post("/api/cloud/clear")
+async def cloud_clear():
+    return cs.clear_config()
 
 
 if __name__ == "__main__":

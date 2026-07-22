@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blob Storage Test - Frontend Only</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .test-section h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    button:hover { background: #5568d3; }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    input[type="file"] {
+      padding: 8px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Blob Storage Test Suite</h1>
+  <p class="subtitle">Frontend-only testing (no backend required)</p>
+
+  <!-- Test 1: Check Status -->
+  <div class="test-section">
+    <h3>Test 1: Check Configuration Status</h3>
+    <button onclick="test1_checkStatus()">Run Test</button>
+    <div id="test1-result"></div>
+  </div>
+
+  <!-- Test 2: Upload Image -->
+  <div class="test-section">
+    <h3>Test 2: Upload Image</h3>
+    <input type="file" id="testImage" accept="image/*">
+    <button onclick="test2_uploadImage()">Upload Test Image</button>
+    <div id="test2-result"></div>
+  </div>
+
+  <!-- Test 3: View Uploaded Image -->
+  <div class="test-section">
+    <h3>Test 3: View Uploaded Image</h3>
+    <p>Upload an image in Test 2 first, then click below to view it:</p>
+    <div id="test3-preview"></div>
+  </div>
+
+  <!-- Configuration Link -->
+  <div class="test-section">
+    <h3>⚙️ Configuration</h3>
+    <p>Not configured yet? <a href="blob_config_ui.html" target="_blank">Configure Blob Storage</a></p>
+  </div>
+
+  <!-- Include blob storage scripts -->
+  <script src="blob_storage.js"></script>
+  <script src="blob_config.js"></script>
+
+  <script>
+    let lastUploadedBlob = null;
+
+    // Test 1: Check Status
+    function test1_checkStatus() {
+      const result = document.getElementById('test1-result');
+      const status = window.blobStorage.getStatus();
+      
+      if (status.configured) {
+        result.innerHTML = `
+          <div class="result success">
+            <strong>✓ Test 1 PASSED</strong><br>
+            Configured: ${status.configured}<br>
+            Account: ${status.account}<br>
+            Container: ${status.container}
+          </div>
+        `;
+      } else {
+        result.innerHTML = `
+          <div class="result error">
+            <strong>✗ Test 1 FAILED</strong><br>
+            ${status.message}<br>
+            <br>
+            <a href="blob_config_ui.html" target="_blank">Click here to configure</a>
+          </div>
+        `;
+      }
+    }
+
+    // Test 2: Upload Image
+    async function test2_uploadImage() {
+      const result = document.getElementById('test2-result');
+      const fileInput = document.getElementById('testImage');
+      
+      if (!fileInput.files || !fileInput.files[0]) {
+        result.innerHTML = `
+          <div class="result error">
+            <strong>✗ No file selected</strong><br>
+            Please select an image file first.
+          </div>
+        `;
+        return;
+      }
+
+      const file = fileInput.files[0];
+      
+      result.innerHTML = `
+        <div class="result info">
+          <strong>Uploading...</strong><br>
+          File: ${file.name} (${Math.round(file.size / 1024)}KB)
+        </div>
+      `;
+
+      try {
+        const uploadResult = await window.blobStorage.uploadImage(file, 'Test Task');
+        
+        if (uploadResult.success) {
+          lastUploadedBlob = uploadResult;
+          
+          result.innerHTML = `
+            <div class="result success">
+              <strong>✓ Test 2 PASSED</strong><br>
+              Upload successful!<br>
+              <br>
+              <strong>Details:</strong><br>
+              Blob name: ${uploadResult.blob_name}<br>
+              Size: ${Math.round(uploadResult.size / 1024)}KB<br>
+              Type: ${uploadResult.content_type}<br>
+              <br>
+              <strong>Preview URL:</strong><br>
+              <pre>${uploadResult.preview_url.substring(0, 80)}...</pre>
+            </div>
+          `;
+          
+          // Show in Test 3
+          test3_showPreview();
+        } else {
+          result.innerHTML = `
+            <div class="result error">
+              <strong>✗ Test 2 FAILED</strong><br>
+              ${uploadResult.error}
+            </div>
+          `;
+        }
+      } catch (error) {
+        result.innerHTML = `
+          <div class="result error">
+            <strong>✗ Test 2 FAILED</strong><br>
+            ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    // Test 3: Show Preview
+    function test3_showPreview() {
+      const preview = document.getElementById('test3-preview');
+      
+      if (!lastUploadedBlob) {
+        preview.innerHTML = `
+          <div class="result info">
+            No image uploaded yet. Upload one in Test 2 first.
+          </div>
+        `;
+        return;
+      }
+
+      preview.innerHTML = `
+        <div class="result success">
+          <strong>✓ Test 3: Image Preview</strong><br>
+          <br>
+          <img src="${lastUploadedBlob.preview_url}" style="max-width: 100%; border-radius: 8px; margin-top: 10px;">
+          <br><br>
+          <strong>Blob Name:</strong> ${lastUploadedBlob.blob_name}<br>
+          <strong>Permanent URL:</strong><br>
+          <pre>${lastUploadedBlob.permanent_url}</pre>
+        </div>
+      `;
+    }
+
+    // Run Test 1 on load
+    window.addEventListener('DOMContentLoaded', () => {
+      test1_checkStatus();
+    });
+  </script>
+</body>
+</html>

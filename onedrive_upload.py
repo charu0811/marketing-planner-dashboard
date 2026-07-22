@@ -9,10 +9,11 @@ import msal
 import requests
 from pathlib import Path
 
-# Azure AD app config - using Microsoft's common multi-tenant endpoint
+# Azure AD app config
 # You can register your own app at https://portal.azure.com > App registrations
 CLIENT_ID = "YOUR_CLIENT_ID"  # Will be set via config
-AUTHORITY = "https://login.microsoftonline.com/common"
+# Using specific tenant ID for work/school account
+AUTHORITY = "https://login.microsoftonline.com/607e155f-59a1-4d8f-ae7c-8d7729d581f1"
 SCOPES = ["Files.ReadWrite.All", "User.Read"]
 
 TOKEN_CACHE_PATH = os.path.join(os.path.dirname(__file__), ".onedrive_token_cache.json")

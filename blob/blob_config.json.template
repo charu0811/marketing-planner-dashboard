@@ -1,0 +1,6 @@
+{
+  "account_name": "YOUR_AZURE_STORAGE_ACCOUNT_NAME",
+  "account_key": "YOUR_AZURE_STORAGE_ACCOUNT_KEY",
+  "container_name": "marketing-assets",
+  "folder_prefix": "task-images/"
+}

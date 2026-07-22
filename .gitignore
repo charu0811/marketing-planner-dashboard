@@ -4,5 +4,7 @@ __pycache__/
 *.db
 .onedrive_token_cache.json
 onedrive_config.json
+cloud_storage_config.json
+blob/blob_config.json
 .streamlit/
 .DS_Store

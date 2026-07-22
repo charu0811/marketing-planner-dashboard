@@ -251,6 +251,7 @@
     </div>
     <button class="btn btn-primary" onclick="openTaskModal()">+ New task</button>
     <button class="chip-toggle" onclick="toggleOneDrivePanel()" title="OneDrive Assets">☁️ OneDrive</button>
+    <button class="chip-toggle" onclick="toggleCloudStoragePanel()" title="Cloud Storage (S3 / Azure)" style="background:linear-gradient(135deg,#FF9900,#0078D4);color:#fff;border-color:transparent;">☁️ S3 / Azure</button>
   </div>
 
   <!-- ONEDRIVE PANEL -->
@@ -270,6 +271,80 @@
       </div>
       <div id="odLogin" style="display:none;margin-bottom:14px;"></div>
       <div id="odFiles" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- CLOUD STORAGE PANEL (S3 / Azure Blob) -->
+  <div id="cloudStoragePanel" class="feat-panel" style="display:none;">
+    <div class="feat-panel-head" style="background:linear-gradient(135deg,rgba(255,153,0,0.08),rgba(0,120,212,0.08));">
+      <h3>Cloud <em style="background:linear-gradient(135deg,#FF9900,#0078D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Storage</em></h3>
+      <button class="btn-text" onclick="toggleCloudStoragePanel()">✕ Close</button>
+    </div>
+    <div class="feat-panel-body">
+      <div id="csStatus" style="margin-bottom:14px;"></div>
+      
+      <!-- Provider Selector -->
+      <div id="csProviderSelect" style="display:none;margin-bottom:14px;">
+        <p style="font-size:12px;color:var(--ink-65);margin-bottom:10px;">Choose your cloud storage provider:</p>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="showCloudConfig('s3')" style="flex:1;padding:16px;border-radius:10px;">
+            <div style="font-size:20px;margin-bottom:4px;">🪣</div>
+            <div style="font-size:13px;font-weight:600;color:#FF9900;">AWS S3</div>
+          </button>
+          <button class="btn btn-ghost" onclick="showCloudConfig('azure')" style="flex:1;padding:16px;border-radius:10px;">
+            <div style="font-size:20px;margin-bottom:4px;">☁️</div>
+            <div style="font-size:13px;font-weight:600;color:#0078D4;">Azure Blob</div>
+          </button>
+        </div>
+      </div>
+      
+      <!-- S3 Config -->
+      <div id="csS3Config" style="display:none;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:16px;">🪣</span>
+          <span style="font-size:13px;font-weight:600;color:#FF9900;">AWS S3 Configuration</span>
+          <button class="btn-text" onclick="showCloudProviderSelect()" style="margin-left:auto;">← Back</button>
+        </div>
+        <div class="feat-add-form" style="flex-direction:column;gap:10px;">
+          <input type="text" id="csS3AccessKey" placeholder="Access Key ID" style="width:100%;">
+          <input type="password" id="csS3SecretKey" placeholder="Secret Access Key" style="width:100%;">
+          <div style="display:flex;gap:10px;">
+            <input type="text" id="csS3Bucket" placeholder="Bucket Name" style="flex:1;">
+            <input type="text" id="csS3Region" placeholder="Region (us-east-1)" style="width:120px;" value="us-east-1">
+          </div>
+          <input type="text" id="csS3Prefix" placeholder="Folder prefix (marketing-assets/)" style="width:100%;" value="marketing-assets/">
+          <button class="btn btn-primary" onclick="saveS3Config()" style="align-self:flex-start;">Connect S3</button>
+        </div>
+        <p style="font-size:10px;color:var(--ink-42);margin:8px 0 0;">Create an IAM user with S3 access. Ensure the bucket allows public read if you want direct preview links.</p>
+      </div>
+      
+      <!-- Azure Config -->
+      <div id="csAzureConfig" style="display:none;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:16px;">☁️</span>
+          <span style="font-size:13px;font-weight:600;color:#0078D4;">Azure Blob Storage Configuration</span>
+          <button class="btn-text" onclick="showCloudProviderSelect()" style="margin-left:auto;">← Back</button>
+        </div>
+        <div class="feat-add-form" style="flex-direction:column;gap:10px;">
+          <textarea id="csAzureConnStr" placeholder="Connection String (from Azure Portal → Storage Account → Access keys)" rows="2" style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+          <input type="text" id="csAzureContainer" placeholder="Container Name" style="width:100%;">
+          <input type="text" id="csAzurePrefix" placeholder="Folder prefix (marketing-assets/)" style="width:100%;" value="marketing-assets/">
+          <button class="btn btn-primary" onclick="saveAzureConfig()" style="align-self:flex-start;">Connect Azure</button>
+        </div>
+        <p style="font-size:10px;color:var(--ink-42);margin:8px 0 0;">Find your connection string in Azure Portal → Storage Account → Access keys.</p>
+      </div>
+      
+      <!-- Upload Section -->
+      <div id="csUpload" style="display:none;margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-42);margin-bottom:8px;">Quick Upload</div>
+        <div class="dropzone" id="csDropzone" onclick="document.getElementById('csFileInput').click()">
+          Drop files here or click to upload to cloud storage
+        </div>
+        <input type="file" id="csFileInput" multiple style="display:none" onchange="uploadToCloudStorage(this.files)">
+      </div>
+      
+      <!-- Files List -->
+      <div id="csFiles" style="display:none;"></div>
     </div>
   </div>
 
@@ -1500,6 +1575,271 @@ async function logoutOneDrive(){
     showToast('OneDrive disconnected');
     checkOneDriveStatus();
   }catch(e){ showToast('Failed to disconnect'); }
+}
+
+/* ---------------- Cloud Storage (S3 / Azure Blob) ---------------- */
+let cloudState = { configured: false, provider: null };
+
+function toggleCloudStoragePanel(){
+  const panel = document.getElementById('cloudStoragePanel');
+  if(panel.style.display==='none'){
+    panel.style.display='block';
+    checkCloudStatus();
+  } else {
+    panel.style.display='none';
+  }
+}
+
+async function checkCloudStatus(){
+  try{
+    const status = await apiFetch('/api/cloud/status');
+    cloudState.configured = status.configured;
+    cloudState.provider = status.provider;
+    renderCloudUI(status);
+  }catch(e){
+    document.getElementById('csStatus').innerHTML = '<div style="color:var(--rust);font-size:12px;">Failed to check cloud storage status</div>';
+  }
+}
+
+function renderCloudUI(status){
+  const statusEl = document.getElementById('csStatus');
+  const providerSelect = document.getElementById('csProviderSelect');
+  const s3Config = document.getElementById('csS3Config');
+  const azureConfig = document.getElementById('csAzureConfig');
+  const uploadEl = document.getElementById('csUpload');
+  const filesEl = document.getElementById('csFiles');
+  
+  // Hide all sections first
+  providerSelect.style.display = 'none';
+  s3Config.style.display = 'none';
+  azureConfig.style.display = 'none';
+  uploadEl.style.display = 'none';
+  filesEl.style.display = 'none';
+
+  if(status.configured && status.connected){
+    const providerLabel = status.provider === 's3' ? 'AWS S3' : 'Azure Blob';
+    const providerColor = status.provider === 's3' ? '#FF9900' : '#0078D4';
+    const storageInfo = status.provider === 's3' ? status.bucket : status.container;
+    
+    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(255,153,0,0.08),rgba(0,120,212,0.08));border:1px solid ${providerColor}40;border-radius:8px;">
+      <span style="font-size:12px;color:${providerColor};font-weight:600;">✓ Connected to ${providerLabel}</span>
+      <span style="font-size:11px;color:var(--ink-65);">${esc(storageInfo)}</span>
+      <button class="btn-text" style="margin-left:auto;color:var(--rust);" onclick="clearCloudConfig()">Disconnect</button>
+    </div>`;
+    uploadEl.style.display = 'block';
+    filesEl.style.display = 'block';
+    loadCloudFiles();
+    setupCloudDropzone();
+  } else if(status.configured && !status.connected){
+    statusEl.innerHTML = `<div style="padding:10px 14px;background:var(--rust-dim);border:1px solid rgba(194,71,46,0.35);border-radius:8px;">
+      <span style="font-size:12px;color:var(--rust);font-weight:600;">⚠️ Connection Error</span>
+      <p style="font-size:11px;color:var(--ink-65);margin:6px 0 0;">${esc(status.error||'Unable to connect')}</p>
+      <button class="btn-text" style="margin-top:8px;color:var(--rust);" onclick="clearCloudConfig()">Reset Configuration</button>
+    </div>`;
+    providerSelect.style.display = 'block';
+  } else {
+    statusEl.innerHTML = '<div style="font-size:12px;color:var(--ink-65);padding:8px 0;">No cloud storage configured. Choose a provider below to get started.</div>';
+    providerSelect.style.display = 'block';
+  }
+}
+
+function showCloudProviderSelect(){
+  document.getElementById('csS3Config').style.display = 'none';
+  document.getElementById('csAzureConfig').style.display = 'none';
+  document.getElementById('csProviderSelect').style.display = 'block';
+}
+
+function showCloudConfig(provider){
+  document.getElementById('csProviderSelect').style.display = 'none';
+  if(provider === 's3'){
+    document.getElementById('csS3Config').style.display = 'block';
+    document.getElementById('csAzureConfig').style.display = 'none';
+  } else {
+    document.getElementById('csS3Config').style.display = 'none';
+    document.getElementById('csAzureConfig').style.display = 'block';
+  }
+}
+
+async function saveS3Config(){
+  const accessKey = document.getElementById('csS3AccessKey').value.trim();
+  const secretKey = document.getElementById('csS3SecretKey').value.trim();
+  const bucket = document.getElementById('csS3Bucket').value.trim();
+  const region = document.getElementById('csS3Region').value.trim() || 'us-east-1';
+  const prefix = document.getElementById('csS3Prefix').value.trim();
+  
+  if(!accessKey || !secretKey || !bucket){
+    showToast('Please fill in Access Key, Secret Key, and Bucket Name');
+    return;
+  }
+  
+  try{
+    await apiFetch('/api/cloud/config/s3', {
+      method: 'POST',
+      body: JSON.stringify({ access_key_id: accessKey, secret_access_key: secretKey, bucket_name: bucket, region, folder_prefix: prefix })
+    });
+    showToast('S3 configured successfully!');
+    checkCloudStatus();
+  }catch(e){ showToast('Failed to configure S3: ' + e.message); }
+}
+
+async function saveAzureConfig(){
+  const connStr = document.getElementById('csAzureConnStr').value.trim();
+  const container = document.getElementById('csAzureContainer').value.trim();
+  const prefix = document.getElementById('csAzurePrefix').value.trim();
+  
+  if(!connStr || !container){
+    showToast('Please fill in Connection String and Container Name');
+    return;
+  }
+  
+  try{
+    await apiFetch('/api/cloud/config/azure', {
+      method: 'POST',
+      body: JSON.stringify({ connection_string: connStr, container_name: container, folder_prefix: prefix })
+    });
+    showToast('Azure Blob Storage configured successfully!');
+    checkCloudStatus();
+  }catch(e){ showToast('Failed to configure Azure: ' + e.message); }
+}
+
+async function clearCloudConfig(){
+  if(!confirm('Disconnect cloud storage?')) return;
+  try{
+    await apiFetch('/api/cloud/clear', { method:'POST' });
+    showToast('Cloud storage disconnected');
+    checkCloudStatus();
+  }catch(e){ showToast('Failed to disconnect'); }
+}
+
+function setupCloudDropzone(){
+  const dropzone = document.getElementById('csDropzone');
+  if(!dropzone) return;
+  
+  dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('drag'); };
+  dropzone.ondragleave = () => { dropzone.classList.remove('drag'); };
+  dropzone.ondrop = async (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    const files = e.dataTransfer.files;
+    if(files.length) uploadToCloudStorage(files);
+  };
+}
+
+async function uploadToCloudStorage(files){
+  if(!files || !files.length) return;
+  
+  const dropzone = document.getElementById('csDropzone');
+  const originalText = dropzone.innerText;
+  
+  for(let i = 0; i < files.length; i++){
+    const file = files[i];
+    dropzone.innerText = `Uploading ${file.name}... (${i+1}/${files.length})`;
+    dropzone.classList.add('drag');
+    
+    try{
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('subfolder', '');
+      
+      const res = await fetch('/api/cloud/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if(!res.ok){
+        const err = await res.text();
+        throw new Error(err);
+      }
+      
+      const result = await res.json();
+      showToast(`Uploaded: ${file.name}`);
+    }catch(e){
+      showToast(`Failed to upload ${file.name}: ${e.message}`);
+    }
+  }
+  
+  dropzone.innerText = originalText;
+  dropzone.classList.remove('drag');
+  loadCloudFiles();
+}
+
+async function loadCloudFiles(){
+  const filesEl = document.getElementById('csFiles');
+  filesEl.innerHTML = '<div style="font-size:11px;color:var(--ink-42);">Loading files...</div>';
+  
+  try{
+    const res = await apiFetch('/api/cloud/files');
+    if(res.error){ 
+      filesEl.innerHTML = `<div style="color:var(--rust);font-size:12px;">${esc(res.error)}</div>`; 
+      return; 
+    }
+    
+    const files = res.files || [];
+    const provider = res.provider;
+    const providerLabel = provider === 's3' ? 'S3' : 'Azure';
+    
+    if(!files.length){
+      filesEl.innerHTML = '<div style="font-size:12px;color:var(--ink-42);text-align:center;padding:20px;">No files uploaded yet. Use the dropzone above or upload from task modal.</div>';
+      return;
+    }
+    
+    filesEl.innerHTML = `
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-42);margin-bottom:8px;">Cloud Assets — ${providerLabel} (${files.length} files)</div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;">
+        ${files.map(f => {
+          const isImage = f.content_type && f.content_type.startsWith('image/');
+          const isVideo = f.content_type && f.content_type.startsWith('video/');
+          const isPdf = f.content_type === 'application/pdf';
+          const previewable = isImage || isVideo || isPdf;
+          const fileKey = f.key || f.blob_name;
+          const sizeKb = f.size ? Math.round(f.size/1024) + ' KB' : '';
+          
+          return `
+          <div class="asset-item" style="cursor:${previewable?'pointer':'default'};" onclick="${previewable ? `previewCloudFile('${esc(f.preview_url)}','${esc(f.content_type)}')` : ''}">
+            <div class="aname">
+              <span style="font-size:14px;">${isImage?'🖼️':isVideo?'🎬':isPdf?'📄':'📁'}</span>
+              <span>${esc(f.name)}</span>
+              <span style="font-size:9px;color:var(--ink-42);margin-left:4px;">${sizeKb}</span>
+            </div>
+            <div class="aacts">
+              ${previewable ? `<button onclick="event.stopPropagation();previewCloudFile('${esc(f.preview_url)}','${esc(f.content_type)}')" style="color:var(--teal);">Preview</button>` : ''}
+              <a href="${esc(f.preview_url)}" target="_blank" onclick="event.stopPropagation();" style="font-size:10px;color:var(--teal);text-decoration:none;">Download ↗</a>
+              <button onclick="event.stopPropagation();deleteCloudFile('${esc(fileKey)}')" style="color:var(--rust);">Delete</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }catch(e){ 
+    filesEl.innerHTML = `<div style="color:var(--rust);font-size:12px;">Failed to load: ${esc(e.message)}</div>`; 
+  }
+}
+
+function previewCloudFile(url, contentType){
+  const lb = document.getElementById('lightbox');
+  const content = document.getElementById('lightboxContent');
+  
+  if(contentType && contentType.startsWith('image/')){
+    content.innerHTML = `<img src="${esc(url)}" alt="Preview" style="max-width:90vw;max-height:85vh;border-radius:8px;">`;
+  } else if(contentType && contentType.startsWith('video/')){
+    content.innerHTML = `<video src="${esc(url)}" controls autoplay style="max-width:90vw;max-height:85vh;border-radius:8px;"></video>`;
+  } else if(contentType === 'application/pdf'){
+    content.innerHTML = `<iframe src="${esc(url)}" style="width:85vw;height:85vh;border:none;border-radius:8px;background:#fff;"></iframe>`;
+  } else {
+    window.open(url, '_blank');
+    return;
+  }
+  
+  lb.classList.add('open');
+}
+
+async function deleteCloudFile(fileKey){
+  if(!confirm('Delete this file from cloud storage?')) return;
+  
+  try{
+    await apiFetch('/api/cloud/files/' + encodeURIComponent(fileKey), { method:'DELETE' });
+    showToast('File deleted');
+    loadCloudFiles();
+  }catch(e){ showToast('Failed to delete: ' + e.message); }
 }
 
 /* ---------------- init ---------------- */
