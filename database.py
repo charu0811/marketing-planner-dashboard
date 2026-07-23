@@ -9,8 +9,10 @@ if DATABASE_URL:
     import psycopg2
     import psycopg2.extras
 
+    PG_SSLMODE = os.environ.get("PGSSLMODE", "require")
+
     def get_connection():
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(DATABASE_URL, sslmode=PG_SSLMODE)
         conn.autocommit = False
         return conn
 
