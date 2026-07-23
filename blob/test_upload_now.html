@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎉 Test Your Blob Storage NOW!</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { color: #333; margin-bottom: 10px; font-size: 32px; }
+    .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+    .config-box {
+      background: #f8f9fa;
+      border-left: 4px solid #28a745;
+      padding: 16px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .config-box strong { color: #28a745; }
+    .test-section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .test-section h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s;
+      margin-top: 10px;
+    }
+    button:hover { transform: translateY(-2px); }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    input[type="file"] {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      width: 100%;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+    .info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+    pre {
+      background: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .emoji { font-size: 24px; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span class="emoji">🎉</span>Test Your Blob Storage!</h1>
+    <p class="subtitle">Your configuration is ready. Let's test it!</p>
+    
+    <div class="config-box">
+      <strong>✅ Configuration Loaded:</strong><br>
+      Account: <code>emailonboardingprod</code><br>
+      Container: <code>jira</code><br>
+      Folder: <code>task-images/</code><br>
+      SAS Expiry: December 31, 2030 (4+ years) 🎊
+    </div>
+
+    <!-- Test 1: Check Status -->
+    <div class="test-section">
+      <h3>📋 Step 1: Verify Configuration</h3>
+      <button onclick="testConfig()">Check Configuration</button>
+      <div id="configResult"></div>
+    </div>
+
+    <!-- Test 2: Upload Image -->
+    <div class="test-section">
+      <h3>📤 Step 2: Upload Test Image</h3>
+      <input type="file" id="testImage" accept="image/*">
+      <button onclick="uploadImage()">Upload to Azure Blob</button>
+      <div id="uploadResult"></div>
+    </div>
+
+    <!-- Test 3: View Preview -->
+    <div class="test-section">
+      <h3>👁️ Step 3: View Uploaded Image</h3>
+      <div id="previewResult"></div>
+    </div>
+  </div>
+
+  <!-- Include blob storage script -->
+  <script>
+    // Configuration (auto-loaded from blob_config.json values)
+    const config = {
+      account_name: 'emailonboardingprod',
+      sas_token: 'sp=racwdl&st=2026-07-23T10:03:37Z&se=2030-12-31T18:18:37Z&spr=https&sv=2026-02-06&sr=c&sig=COvNJUbZJjS6Vv3eL7WyuJi3v98RpQ59pvTyudZXm%2BY%3D',
+      container_name: 'jira',
+      folder_prefix: 'task-images/'
+    };
+
+    let lastUploadedBlob = null;
+
+    // Test Configuration
+    function testConfig() {
+      const result = document.getElementById('configResult');
+      result.innerHTML = `
+        <div class="result info">
+          <strong>🔍 Testing configuration...</strong>
+        </div>
+      `;
+
+      // Try to list blobs (should work if config is correct)
+      const listUrl = `https://${config.account_name}.blob.core.windows.net/${config.container_name}?${config.sas_token}&restype=container&comp=list&maxresults=1`;
+      
+      fetch(listUrl)
+        .then(response => {
+          if (response.ok) {
+            result.innerHTML = `
+              <div class="result success">
+                <strong>✅ Configuration Valid!</strong><br>
+                Account: ${config.account_name}<br>
+                Container: ${config.container_name}<br>
+                Connection: Successful<br>
+                <br>
+                Ready to upload! Proceed to Step 2.
+              </div>
+            `;
+          } else {
+            result.innerHTML = `
+              <div class="result error">
+                <strong>❌ Configuration Error</strong><br>
+                Status: ${response.status}<br>
+                Make sure:<br>
+                • Container exists in Azure<br>
+                • SAS token is valid<br>
+                • CORS is enabled
+              </div>
+            `;
+          }
+        })
+        .catch(error => {
+          result.innerHTML = `
+            <div class="result error">
+              <strong>❌ Connection Failed</strong><br>
+              ${error.message}<br>
+              <br>
+              Check:<br>
+              • Internet connection<br>
+              • CORS settings in Azure Portal
+            </div>
+          `;
+        });
+    }
+
+    // Upload Image
+    async function uploadImage() {
+      const fileInput = document.getElementById('testImage');
+      const result = document.getElementById('uploadResult');
+      
+      if (!fileInput.files || !fileInput.files[0]) {
+        result.innerHTML = `
+          <div class="result error">
+            <strong>❌ No file selected</strong><br>
+            Please select an image file first.
+          </div>
+        `;
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
+      const blobName = `${config.folder_prefix}Test_Task_img_${timestamp}.${file.name.split('.').pop()}`;
+      
+      result.innerHTML = `
+        <div class="result info">
+          <strong>⏳ Uploading...</strong><br>
+          File: ${file.name} (${Math.round(file.size / 1024)}KB)<br>
+          To: ${blobName}
+        </div>
+      `;
+
+      const blobUrl = `https://${config.account_name}.blob.core.windows.net/${config.container_name}/${blobName}?${config.sas_token}`;
+      
+      try {
+        const uploadResponse = await fetch(blobUrl, {
+          method: 'PUT',
+          headers: {
+            'x-ms-blob-type': 'BlockBlob',
+            'Content-Type': file.type || 'application/octet-stream'
+          },
+          body: file
+        });
+
+        if (uploadResponse.ok) {
+          const previewUrl = blobUrl;
+          const permanentUrl = `https://${config.account_name}.blob.core.windows.net/${config.container_name}/${blobName}`;
+          
+          lastUploadedBlob = { blob_name: blobName, preview_url: previewUrl, permanent_url: permanentUrl };
+          
+          result.innerHTML = `
+            <div class="result success">
+              <strong>✅ Upload Successful!</strong><br>
+              <br>
+              <strong>Details:</strong><br>
+              Blob Name: ${blobName}<br>
+              Size: ${Math.round(file.size / 1024)}KB<br>
+              Type: ${file.type}<br>
+              <br>
+              <strong>Permanent URL:</strong><br>
+              <pre>${permanentUrl}</pre>
+            </div>
+          `;
+          
+          // Show preview
+          showPreview();
+        } else {
+          const errorText = await uploadResponse.text();
+          result.innerHTML = `
+            <div class="result error">
+              <strong>❌ Upload Failed</strong><br>
+              Status: ${uploadResponse.status}<br>
+              Error: ${errorText}
+            </div>
+          `;
+        }
+      } catch (error) {
+        result.innerHTML = `
+          <div class="result error">
+            <strong>❌ Upload Error</strong><br>
+            ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    // Show Preview
+    function showPreview() {
+      const preview = document.getElementById('previewResult');
+      
+      if (!lastUploadedBlob) {
+        preview.innerHTML = `
+          <div class="result info">
+            Upload an image in Step 2 first.
+          </div>
+        `;
+        return;
+      }
+
+      preview.innerHTML = `
+        <div class="result success">
+          <strong>✅ Image Uploaded Successfully!</strong><br>
+          <br>
+          <img src="${lastUploadedBlob.preview_url}" alt="Uploaded image">
+          <br><br>
+          <strong>Blob Name:</strong><br>
+          <code>${lastUploadedBlob.blob_name}</code>
+          <br><br>
+          <strong>You can access this image at:</strong><br>
+          <pre>${lastUploadedBlob.permanent_url}</pre>
+        </div>
+      `;
+    }
+
+    // Auto-run test 1 on load
+    window.addEventListener('DOMContentLoaded', () => {
+      testConfig();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎉 Test All File Types - Blob Storage</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { color: #333; margin-bottom: 10px; font-size: 32px; }
+    .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+    .supported-types {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: 16px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .supported-types strong { color: #4caf50; }
+    .type-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .type-badge {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #4caf50;
+      text-align: center;
+    }
+    .test-section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    input[type="file"] {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      width: 100%;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.2s;
+      margin-top: 10px;
+    }
+    button:hover { transform: translateY(-2px); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .result {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+    .info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+    pre {
+      background: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    .file-preview {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .file-preview img, .file-preview video {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+    .emoji { font-size: 24px; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span class="emoji">🎉</span>Test All File Types!</h1>
+    <p class="subtitle">Upload images, videos, PDFs, HTML files, and more to Azure Blob Storage</p>
+    
+    <div class="supported-types">
+      <strong>✅ Supported File Types:</strong>
+      <div class="type-list">
+        <div class="type-badge">🖼️ Images</div>
+        <div class="type-badge">🎥 Videos</div>
+        <div class="type-badge">📄 PDFs</div>
+        <div class="type-badge">🌐 HTML</div>
+        <div class="type-badge">📝 Text/Docs</div>
+        <div class="type-badge">📦 All Files</div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#666;">
+        Max size: 50MB (100MB for videos)
+      </div>
+    </div>
+
+    <!-- Upload Test -->
+    <div class="test-section">
+      <h3>📤 Upload Any File Type</h3>
+      <input type="file" id="testFile">
+      <button onclick="uploadFile()">Upload to Azure Blob</button>
+      <div id="uploadResult"></div>
+    </div>
+
+    <!-- Preview Section -->
+    <div class="test-section">
+      <h3>👁️ Preview Uploaded File</h3>
+      <div id="previewSection"></div>
+    </div>
+  </div>
+
+  <!-- Include blob storage scripts -->
+  <script src="blob_storage.js"></script>
+  <script src="blob_config.js"></script>
+
+  <script>
+    // Auto-load configuration
+    window.blobStorage.saveConfig({
+      account_name: 'emailonboardingprod',
+      sas_token: 'sp=racwdl&st=2026-07-23T10:03:37Z&se=2030-12-31T18:18:37Z&spr=https&sv=2026-02-06&sr=c&sig=COvNJUbZJjS6Vv3eL7WyuJi3v98RpQ59pvTyudZXm%2BY%3D',
+      container_name: 'jira',
+      folder_prefix: 'task-images/'
+    });
+
+    let lastUpload = null;
+
+    async function uploadFile() {
+      const fileInput = document.getElementById('testFile');
+      const result = document.getElementById('uploadResult');
+
+      if (!fileInput.files || !fileInput.files[0]) {
+        result.innerHTML = `<div class="result error"><strong>❌ No file selected</strong><br>Please select a file first.</div>`;
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const taskName = 'Test Task';
+
+      result.innerHTML = `
+        <div class="result info">
+          <strong>⏳ Uploading...</strong><br>
+          File: ${file.name}<br>
+          Type: ${file.type || 'unknown'}<br>
+          Size: ${(file.size / 1024).toFixed(2)} KB
+        </div>
+      `;
+
+      try {
+        const uploadResult = await window.blobStorage.uploadFile(file, taskName);
+
+        if (uploadResult.success) {
+          lastUpload = uploadResult;
+
+          result.innerHTML = `
+            <div class="result success">
+              <strong>✅ Upload Successful!</strong><br>
+              <br>
+              <strong>File Details:</strong><br>
+              Name: ${file.name}<br>
+              Category: ${uploadResult.category}<br>
+              Size: ${(uploadResult.size / 1024).toFixed(2)} KB<br>
+              Type: ${uploadResult.content_type}<br>
+              <br>
+              <strong>Blob Name:</strong><br>
+              <code>${uploadResult.blob_name}</code><br>
+              <br>
+              <strong>Permanent URL:</strong><br>
+              <pre>${uploadResult.permanent_url}</pre>
+            </div>
+          `;
+
+          showPreview(uploadResult);
+        } else {
+          result.innerHTML = `
+            <div class="result error">
+              <strong>❌ Upload Failed</strong><br>
+              ${uploadResult.error}
+            </div>
+          `;
+        }
+      } catch (error) {
+        result.innerHTML = `
+          <div class="result error">
+            <strong>❌ Upload Error</strong><br>
+            ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    function showPreview(upload) {
+      const preview = document.getElementById('previewSection');
+      const fileType = upload.content_type.toLowerCase();
+
+      let previewHtml = '';
+
+      if (fileType.startsWith('image/')) {
+        previewHtml = `
+          <div class="result success">
+            <strong>🖼️ Image Preview:</strong><br><br>
+            <div class="file-preview">
+              <img src="${upload.preview_url}" alt="Preview">
+            </div>
+          </div>
+        `;
+      } else if (fileType.startsWith('video/')) {
+        previewHtml = `
+          <div class="result success">
+            <strong>🎥 Video Preview:</strong><br><br>
+            <div class="file-preview">
+              <video src="${upload.preview_url}" controls style="max-width:100%;"></video>
+            </div>
+          </div>
+        `;
+      } else if (fileType === 'application/pdf') {
+        previewHtml = `
+          <div class="result success">
+            <strong>📄 PDF Preview:</strong><br><br>
+            <a href="${upload.preview_url}" target="_blank" style="color:#667eea;text-decoration:none;font-weight:600;">
+              📄 Open PDF in New Tab →
+            </a>
+          </div>
+        `;
+      } else if (fileType === 'text/html') {
+        previewHtml = `
+          <div class="result success">
+            <strong>🌐 HTML File:</strong><br><br>
+            <a href="${upload.preview_url}" target="_blank" style="color:#667eea;text-decoration:none;font-weight:600;">
+              🌐 Open HTML in New Tab →
+            </a>
+          </div>
+        `;
+      } else {
+        previewHtml = `
+          <div class="result info">
+            <strong>📦 File Uploaded:</strong><br><br>
+            <a href="${upload.preview_url}" download style="color:#667eea;text-decoration:none;font-weight:600;">
+              ⬇️ Download ${upload.blob_name.split('/').pop()}
+            </a>
+          </div>
+        `;
+      }
+
+      preview.innerHTML = previewHtml;
+    }
+  </script>
+</body>
+</html>

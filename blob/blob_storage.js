@@ -92,30 +92,45 @@ class BlobStorageClient {
   }
 
   /**
-   * Upload image to blob storage
+   * Get file type category
    */
-  async uploadImage(file, taskName) {
+  getFileCategory(file) {
+    const type = file.type.toLowerCase();
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+    if (type.startsWith('image/')) return 'img';
+    if (type.startsWith('video/') || ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return 'video';
+    if (type === 'application/pdf' || ext === 'pdf') return 'pdf';
+    if (type === 'text/html' || ext === 'html' || ext === 'htm') return 'html';
+    if (type.startsWith('text/') || ['txt', 'md', 'csv'].includes(ext)) return 'doc';
+    return 'file';
+  }
+
+  /**
+   * Upload file to blob storage (images, videos, PDFs, HTML, etc.)
+   */
+  async uploadFile(file, taskName) {
     const status = this.getStatus();
     if (!status.configured) {
       return { error: status.message };
     }
 
     try {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        return { error: 'Only image files are allowed' };
+      // Validate file size (100MB max for videos, 50MB for others)
+      const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 50 * 1024 * 1024;
+      if (file.size > maxSize) {
+        const maxSizeMB = Math.round(maxSize / 1024 / 1024);
+        return { error: `File too large (max ${maxSizeMB}MB)` };
       }
 
-      // Validate file size (10MB max)
-      if (file.size > 10 * 1024 * 1024) {
-        return { error: 'File too large (max 10MB)' };
-      }
+      // Get file category
+      const category = this.getFileCategory(file);
 
       // Create blob name
-      const ext = file.name.split('.').pop() || 'jpg';
+      const ext = file.name.split('.').pop() || 'bin';
       const safeName = this.sanitizeTaskName(taskName || 'untitled');
       const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
-      const blobFilename = `${safeName}_img_${timestamp}.${ext}`;
+      const blobFilename = `${safeName}_${category}_${timestamp}.${ext}`;
       const blobName = `${this.config.folder_prefix}${blobFilename}`;
 
       // Get container URL with SAS
@@ -127,7 +142,7 @@ class BlobStorageClient {
         method: 'PUT',
         headers: {
           'x-ms-blob-type': 'BlockBlob',
-          'Content-Type': file.type
+          'Content-Type': file.type || 'application/octet-stream'
         },
         body: file
       });
@@ -146,13 +161,25 @@ class BlobStorageClient {
         blob_name: blobName,
         preview_url: previewUrl,
         permanent_url: permanentUrl,
-        content_type: file.type,
-        size: file.size
+        content_type: file.type || 'application/octet-stream',
+        size: file.size,
+        category: category
       };
 
     } catch (error) {
       return { error: `Upload failed: ${error.message}` };
     }
+  }
+
+  /**
+   * Upload image (alias for uploadFile with image validation)
+   */
+  async uploadImage(file, taskName) {
+    // Validate it's an image
+    if (!file.type.startsWith('image/')) {
+      return { error: 'Only image files are allowed. Use uploadFile() for other types.' };
+    }
+    return this.uploadFile(file, taskName);
   }
 
   /**

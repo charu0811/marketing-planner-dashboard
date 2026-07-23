@@ -6,7 +6,6 @@ import os
 import json
 import mimetypes
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional, Dict, Any
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "cloud_storage_config.json")
@@ -29,8 +28,57 @@ DEFAULT_CONFIG = {
 }
 
 
+def _normalize_prefix(prefix: str) -> str:
+    if not prefix:
+        return ""
+    return prefix.rstrip('/') + '/'
+
+
+def _env_config() -> Dict[str, Any]:
+    """Build config from environment variables when running in managed hosting."""
+    provider = (os.getenv("CLOUD_STORAGE_PROVIDER") or os.getenv("BLOB_STORAGE_PROVIDER") or "").strip().lower()
+
+    if not provider:
+        if os.getenv("AZURE_STORAGE_CONNECTION_STRING") and os.getenv("AZURE_BLOB_CONTAINER"):
+            provider = "azure"
+        elif os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("S3_BUCKET_NAME"):
+            provider = "s3"
+
+    if provider == "s3":
+        return {
+            "provider": "s3",
+            "managed_by": "env",
+            "s3": {
+                "access_key_id": os.getenv("AWS_ACCESS_KEY_ID", "").strip(),
+                "secret_access_key": os.getenv("AWS_SECRET_ACCESS_KEY", "").strip(),
+                "bucket_name": os.getenv("S3_BUCKET_NAME", "").strip(),
+                "region": (os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-east-1").strip(),
+                "folder_prefix": _normalize_prefix(os.getenv("S3_FOLDER_PREFIX", "marketing-assets/")),
+            },
+            "azure": DEFAULT_CONFIG["azure"].copy(),
+        }
+
+    if provider == "azure":
+        return {
+            "provider": "azure",
+            "managed_by": "env",
+            "s3": DEFAULT_CONFIG["s3"].copy(),
+            "azure": {
+                "connection_string": os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip(),
+                "container_name": (os.getenv("AZURE_BLOB_CONTAINER") or os.getenv("AZURE_CONTAINER_NAME") or "").strip(),
+                "folder_prefix": _normalize_prefix(os.getenv("AZURE_BLOB_FOLDER_PREFIX", "marketing-assets/")),
+            },
+        }
+
+    return {}
+
+
 def load_config() -> Dict[str, Any]:
     """Load cloud storage config."""
+    env_config = _env_config()
+    if env_config:
+        return env_config
+
     if os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, 'r') as f:
             config = json.load(f)
@@ -52,6 +100,7 @@ def get_status() -> Dict[str, Any]:
     """Get current cloud storage status and configuration."""
     config = load_config()
     provider = config.get("provider", "")
+    managed_by = config.get("managed_by", "file")
     
     if not provider:
         return {
@@ -78,7 +127,8 @@ def get_status() -> Dict[str, Any]:
                     "provider": "s3",
                     "bucket": s3_config["bucket_name"],
                     "region": s3_config.get("region", "us-east-1"),
-                    "connected": True
+                    "connected": True,
+                    "managed_by": managed_by,
                 }
             except Exception as e:
                 return {
@@ -86,7 +136,8 @@ def get_status() -> Dict[str, Any]:
                     "provider": "s3",
                     "bucket": s3_config["bucket_name"],
                     "connected": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "managed_by": managed_by,
                 }
         return {
             "configured": False,
@@ -108,7 +159,8 @@ def get_status() -> Dict[str, Any]:
                     "configured": True,
                     "provider": "azure",
                     "container": azure_config["container_name"],
-                    "connected": True
+                    "connected": True,
+                    "managed_by": managed_by,
                 }
             except Exception as e:
                 return {
@@ -116,7 +168,8 @@ def get_status() -> Dict[str, Any]:
                     "provider": "azure",
                     "container": azure_config["container_name"],
                     "connected": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "managed_by": managed_by,
                 }
         return {
             "configured": False,
@@ -141,7 +194,7 @@ def configure_s3(access_key_id: str, secret_access_key: str, bucket_name: str,
         "secret_access_key": secret_access_key,
         "bucket_name": bucket_name,
         "region": region,
-        "folder_prefix": folder_prefix.rstrip('/') + '/' if folder_prefix else ""
+        "folder_prefix": _normalize_prefix(folder_prefix)
     }
     save_config(config)
     return {"success": True, "message": "S3 configured successfully."}
@@ -155,7 +208,7 @@ def configure_azure(connection_string: str, container_name: str,
     config["azure"] = {
         "connection_string": connection_string,
         "container_name": container_name,
-        "folder_prefix": folder_prefix.rstrip('/') + '/' if folder_prefix else ""
+        "folder_prefix": _normalize_prefix(folder_prefix)
     }
     save_config(config)
     return {"success": True, "message": "Azure Blob Storage configured successfully."}
@@ -544,5 +597,7 @@ def get_preview_url(key_or_blob: str) -> Dict[str, Any]:
 
 def clear_config():
     """Clear all cloud storage configuration."""
+    if _env_config():
+        return {"success": False, "message": "Cloud storage is managed by environment variables."}
     save_config(DEFAULT_CONFIG.copy())
     return {"success": True, "message": "Cloud storage configuration cleared."}

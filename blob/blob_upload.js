@@ -15,8 +15,8 @@
 const assetBlobUrls = new Map();
 
 /**
- * Upload image directly to Azure Blob Storage (no backend)
- * @param {File} file - The image file to upload
+ * Upload file directly to Azure Blob Storage (images, videos, PDFs, HTML, etc.)
+ * @param {File} file - The file to upload
  * @param {string} taskName - The task name for blob naming
  * @returns {Promise<Object>} Upload result with preview_url
  */
@@ -27,7 +27,8 @@ async function uploadToBlobStorage(file, taskName) {
   }
 
   try {
-    const result = await window.blobStorage.uploadImage(file, taskName || 'untitled');
+    // Use uploadFile (supports all file types)
+    const result = await window.blobStorage.uploadFile(file, taskName || 'untitled');
     return result;
   } catch (error) {
     console.error('Blob upload error:', error);
@@ -98,8 +99,8 @@ async function handleFilesWithBlob(files) {
       size: file.size
     };
     
-    // Upload to Blob Storage if configured and file is an image
-    if (useBlobStorage && file.type.startsWith('image/')) {
+    // Upload to Blob Storage if configured (supports all file types!)
+    if (useBlobStorage) {
       try {
         showToast(`Uploading ${file.name} to blob storage...`);
         const uploadResult = await uploadToBlobStorage(file, taskName);
@@ -108,6 +109,7 @@ async function handleFilesWithBlob(files) {
           meta.blob_url = uploadResult.preview_url;
           meta.blob_name = uploadResult.blob_name;
           meta.permanent_url = uploadResult.permanent_url;
+          meta.category = uploadResult.category; // img, video, pdf, html, doc, file
           
           // Store the blob URL for this asset
           assetBlobUrls.set(assetId, uploadResult.preview_url);
