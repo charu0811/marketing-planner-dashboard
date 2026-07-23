@@ -290,12 +290,13 @@
           <span style="font-size:13px;font-weight:600;color:#0078D4;">Azure Blob Storage Configuration</span>
         </div>
         <div class="feat-add-form" style="flex-direction:column;gap:10px;">
-          <textarea id="csAzureConnStr" placeholder="Connection String (from Azure Portal → Storage Account → Access keys)" rows="2" style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+          <input type="text" id="csAzureAccountName" placeholder="Storage Account Name" style="width:100%;">
+          <textarea id="csAzureSasToken" placeholder="Container SAS token (without leading ?)" rows="2" style="width:100%;font-family:monospace;font-size:11px;"></textarea>
           <input type="text" id="csAzureContainer" placeholder="Container Name" style="width:100%;">
           <input type="text" id="csAzurePrefix" placeholder="Folder prefix (marketing-assets/)" style="width:100%;" value="marketing-assets/">
           <button class="btn btn-primary" onclick="saveAzureConfig()" style="align-self:flex-start;">Connect Azure</button>
         </div>
-        <p style="font-size:10px;color:var(--ink-42);margin:8px 0 0;">Find your connection string in Azure Portal → Storage Account → Access keys.</p>
+        <p style="font-size:10px;color:var(--ink-42);margin:8px 0 0;">Use a scoped SAS token for this container with read/write/list/delete permissions and short expiry.</p>
       </div>
       
       <!-- Upload Section -->
@@ -468,6 +469,9 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="blob/blob_storage.js"></script>
 <script>
 /* ---------------- constants ---------------- */
 const PLATFORMS_DEFAULT = ['Instagram','LinkedIn','YouTube','WhatsApp','Blog','Customer.io','Instantly','Twitter/X','Facebook'];
@@ -498,12 +502,258 @@ let state = {
   filters: { search:'', owner:'', status:'', approval:'', platforms:[], feature:'', featureOnly:false, showReleased:false }
 };
 
-/* ---------------- storage (SQLite via API) ---------------- */
-const API = (location.hostname.endsWith('web.app') || location.hostname.endsWith('firebaseapp.com'))
-  ? 'https://marketing-planner-dashboard.onrender.com'
-  : '';  // same origin for local/Render
+/* ---------------- storage (Firebase RTDB + Azure Blob) ---------------- */
+const FIREBASE_MODE = true;
+const API = '';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCj_Vo_JLcSFKYGXg9dG3W8o-lrm-Il-HQ",
+  authDomain: "hiiii-192bb.firebaseapp.com",
+  databaseURL: "https://hiiii-192bb-default-rtdb.firebaseio.com",
+  projectId: "hiiii-192bb",
+  storageBucket: "hiiii-192bb.firebasestorage.app",
+  messagingSenderId: "895623123509",
+  appId: "1:895623123509:web:34816c0a6d18d2ed5c977c",
+  measurementId: "G-Y0LB4EEFNE"
+};
+
+let rtdb = null;
+const RTDB_ROOT = 'marketing_dashboard';
+
+function initFirebase(){
+  if(!window.firebase) throw new Error('Firebase SDK not loaded');
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  rtdb = firebase.database();
+}
+
+function normalizeSasToken(token){
+  return (token || '').trim().replace(/^\?+/, '');
+}
+
+function encodeBlobPath(path){
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
+async function rtdbGet(path){
+  const snap = await rtdb.ref(path).once('value');
+  return snap.val();
+}
+
+async function rtdbSet(path, value){
+  await rtdb.ref(path).set(value);
+}
+
+async function rtdbUpdate(path, value){
+  await rtdb.ref(path).update(value);
+}
+
+async function rtdbRemove(path){
+  await rtdb.ref(path).remove();
+}
+
+function buildAzureBlobUrl(account, container, blobName, sas){
+  return `https://${account}.blob.core.windows.net/${container}/${encodeBlobPath(blobName)}?${sas}`;
+}
+
+function guessContentTypeFromName(filename){
+  const lower = (filename || '').toLowerCase();
+  if(lower.endsWith('.png')) return 'image/png';
+  if(lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if(lower.endsWith('.gif')) return 'image/gif';
+  if(lower.endsWith('.webp')) return 'image/webp';
+  if(lower.endsWith('.svg')) return 'image/svg+xml';
+  if(lower.endsWith('.mp4')) return 'video/mp4';
+  if(lower.endsWith('.mov')) return 'video/quicktime';
+  if(lower.endsWith('.pdf')) return 'application/pdf';
+  if(lower.endsWith('.txt')) return 'text/plain';
+  return 'application/octet-stream';
+}
+
+async function listAzureBlobs(){
+  if(!window.blobStorage) return { error: 'Blob storage not initialized' };
+  const cfg = window.blobStorage.config || {};
+  const account = (cfg.account_name || '').trim();
+  const container = (cfg.container_name || '').trim();
+  const sas = normalizeSasToken(cfg.sas_token || '');
+  const prefix = (cfg.folder_prefix || '').trim();
+
+  if(!account || !container || !sas){
+    return { files: [], provider: 'azure', container, prefix };
+  }
+
+  const queryPrefix = prefix ? `&prefix=${encodeURIComponent(prefix)}` : '';
+  const url = `https://${account}.blob.core.windows.net/${container}?restype=container&comp=list${queryPrefix}&${sas}`;
+  const resp = await fetch(url);
+  if(!resp.ok){
+    const text = await resp.text();
+    return { error: `Azure list failed: ${resp.status} ${text}` };
+  }
+
+  const xmlText = await resp.text();
+  const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+  const blobs = Array.from(xml.getElementsByTagName('Blob'));
+
+  const files = blobs.map(blob => {
+    const name = blob.getElementsByTagName('Name')[0]?.textContent || '';
+    const size = Number(blob.getElementsByTagName('Content-Length')[0]?.textContent || 0);
+    const lastModified = blob.getElementsByTagName('Last-Modified')[0]?.textContent || null;
+    const contentType = blob.getElementsByTagName('Content-Type')[0]?.textContent || guessContentTypeFromName(name);
+    const fileName = name.split('/').pop() || name;
+    const previewUrl = buildAzureBlobUrl(account, container, name, sas);
+
+    return {
+      name: fileName,
+      blob_name: name,
+      size,
+      last_modified: lastModified,
+      preview_url: previewUrl,
+      content_type: contentType,
+      is_previewable: /^image\//.test(contentType) || /^video\//.test(contentType) || contentType === 'application/pdf'
+    };
+  });
+
+  return { files, provider: 'azure', container, prefix };
+}
+
+async function deleteAzureBlob(blobName){
+  if(!window.blobStorage) return { error: 'Blob storage not initialized' };
+  const cfg = window.blobStorage.config || {};
+  const account = (cfg.account_name || '').trim();
+  const container = (cfg.container_name || '').trim();
+  const sas = normalizeSasToken(cfg.sas_token || '');
+  if(!account || !container || !sas) return { error: 'Blob storage not configured' };
+
+  const url = buildAzureBlobUrl(account, container, blobName, sas);
+  const resp = await fetch(url, { method: 'DELETE', headers: { 'x-ms-version': '2023-11-03' } });
+  if(!(resp.status === 202 || resp.status === 204 || resp.status === 404)){
+    const text = await resp.text();
+    return { error: `Azure delete failed: ${resp.status} ${text}` };
+  }
+  return { success: true, deleted: blobName };
+}
+
+function cloudStatusFromBlobConfig(){
+  const status = window.blobStorage ? window.blobStorage.getStatus() : { configured:false };
+  if(!status.configured){
+    return { configured: false, provider: null, message: 'No Azure Blob Storage configured yet. Add your storage account details below.' };
+  }
+  return {
+    configured: true,
+    connected: true,
+    provider: 'azure',
+    container: status.container || (window.blobStorage.config?.container_name || ''),
+    account: status.account || (window.blobStorage.config?.account_name || ''),
+  };
+}
 
 async function apiFetch(path, opts={}){
+  if(FIREBASE_MODE){
+    initFirebase();
+    const method = (opts.method || 'GET').toUpperCase();
+    const body = opts.body ? JSON.parse(opts.body) : {};
+    const taskMatch = path.match(/^\/api\/tasks\/([^/]+)$/);
+    const taskStatusMatch = path.match(/^\/api\/tasks\/([^/]+)\/status$/);
+    const featureMatch = path.match(/^\/api\/features\/([^/]+)$/);
+    const cloudFileMatch = path.match(/^\/api\/cloud\/files\/([^/]+)$/);
+
+    if(path === '/api/tasks' && method === 'GET'){
+      const raw = await rtdbGet(`${RTDB_ROOT}/tasks`) || {};
+      return Object.values(raw);
+    }
+    if(path === '/api/tasks' && method === 'POST'){
+      const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
+      const now = new Date().toISOString();
+      const rec = { id, ...body, created_at: now, updated_at: now };
+      await rtdbSet(`${RTDB_ROOT}/tasks/${id}`, rec);
+      return { id, message: 'Task created' };
+    }
+    if(taskMatch && method === 'PUT'){
+      const id = decodeURIComponent(taskMatch[1]);
+      const existing = await rtdbGet(`${RTDB_ROOT}/tasks/${id}`);
+      const now = new Date().toISOString();
+      const rec = { id, ...body, created_at: existing?.created_at || now, updated_at: now };
+      await rtdbSet(`${RTDB_ROOT}/tasks/${id}`, rec);
+      return { message: 'Task updated' };
+    }
+    if(taskStatusMatch && method === 'PATCH'){
+      const id = decodeURIComponent(taskStatusMatch[1]);
+      await rtdbUpdate(`${RTDB_ROOT}/tasks/${id}`, { status: body.status || 'To Do', updated_at: new Date().toISOString() });
+      return { message: 'Status updated' };
+    }
+    if(taskMatch && method === 'DELETE'){
+      const id = decodeURIComponent(taskMatch[1]);
+      await rtdbRemove(`${RTDB_ROOT}/tasks/${id}`);
+      return { message: 'Task deleted' };
+    }
+
+    if(path === '/api/features' && method === 'GET'){
+      const raw = await rtdbGet(`${RTDB_ROOT}/features`) || {};
+      return Object.values(raw);
+    }
+    if(path === '/api/features' && method === 'POST'){
+      const id = `feat_${Date.now().toString(36)}${Math.random().toString(36).slice(2,5)}`;
+      const rec = { id, name: body.name || '', release_date: body.release_date || '', comments: body.comments || '' };
+      await rtdbSet(`${RTDB_ROOT}/features/${id}`, rec);
+      return { id, message: 'Feature created' };
+    }
+    if(featureMatch && method === 'PUT'){
+      const id = decodeURIComponent(featureMatch[1]);
+      const rec = { id, name: body.name || '', release_date: body.release_date || '', comments: body.comments || '' };
+      await rtdbSet(`${RTDB_ROOT}/features/${id}`, rec);
+      return { message: 'Feature updated' };
+    }
+    if(featureMatch && method === 'DELETE'){
+      const id = decodeURIComponent(featureMatch[1]);
+      await rtdbRemove(`${RTDB_ROOT}/features/${id}`);
+      return { message: 'Feature deleted' };
+    }
+
+    if(path === '/api/platforms' && method === 'GET'){
+      const raw = await rtdbGet(`${RTDB_ROOT}/platforms`) || {};
+      return Object.values(raw).sort((a,b)=>a.localeCompare(b));
+    }
+    if(path === '/api/platforms' && method === 'POST'){
+      const name = (body.name || '').trim();
+      if(name) await rtdbSet(`${RTDB_ROOT}/platforms/${name.toLowerCase().replace(/[^a-z0-9]+/g,'_')}`, name);
+      return { message: 'Platform added' };
+    }
+
+    if(path === '/api/owners' && method === 'GET'){
+      const raw = await rtdbGet(`${RTDB_ROOT}/owners`) || {};
+      return Object.values(raw).sort((a,b)=>a.localeCompare(b));
+    }
+    if(path === '/api/owners' && method === 'POST'){
+      const name = (body.name || '').trim();
+      if(name) await rtdbSet(`${RTDB_ROOT}/owners/${name.toLowerCase().replace(/[^a-z0-9]+/g,'_')}`, name);
+      return { message: 'Owner added' };
+    }
+
+    if(path === '/api/cloud/status' && method === 'GET') return cloudStatusFromBlobConfig();
+    if(path === '/api/cloud/config/azure' && method === 'POST'){
+      if(!window.blobStorage) throw new Error('Blob storage not initialized');
+      window.blobStorage.saveConfig({
+        account_name: (body.account_name || '').trim(),
+        sas_token: normalizeSasToken(body.sas_token || ''),
+        container_name: (body.container_name || '').trim(),
+        folder_prefix: (body.folder_prefix || 'marketing-assets/').trim() || 'marketing-assets/'
+      });
+      return { success: true, message: 'Azure configured' };
+    }
+    if(path === '/api/cloud/clear' && method === 'POST'){
+      localStorage.removeItem('blob_storage_config');
+      return { success: true, message: 'Azure configuration cleared' };
+    }
+    if(path === '/api/cloud/files' && method === 'GET') return listAzureBlobs();
+    if(cloudFileMatch && method === 'DELETE') return deleteAzureBlob(decodeURIComponent(cloudFileMatch[1]));
+
+    if(path.startsWith('/api/onedrive/')){
+      if(path === '/api/onedrive/status') return { authenticated: false, reason: 'disabled_in_firebase_mode' };
+      throw new Error('OneDrive backend is disabled in Firebase-only mode');
+    }
+
+    throw new Error(`Unsupported route in Firebase mode: ${method} ${path}`);
+  }
+
   const {headers, ...rest} = opts;
   const res = await fetch(API + path, {
     headers: {'Content-Type':'application/json', ...headers},
@@ -514,6 +764,12 @@ async function apiFetch(path, opts={}){
 }
 
 async function loadAll(){
+  if(FIREBASE_MODE){
+    document.querySelectorAll('[onclick="toggleOneDrivePanel()"]').forEach(el => el.style.display = 'none');
+    const panel = document.getElementById('oneDrivePanel');
+    if(panel) panel.style.display = 'none';
+  }
+
   try{
     const tasks = await apiFetch('/api/tasks');
     state.tasks = tasks.map(t => ({
@@ -1605,19 +1861,20 @@ function renderCloudUI(status){
 }
 
 async function saveAzureConfig(){
-  const connStr = document.getElementById('csAzureConnStr').value.trim();
+  const accountName = document.getElementById('csAzureAccountName').value.trim();
+  const sasToken = document.getElementById('csAzureSasToken').value.trim();
   const container = document.getElementById('csAzureContainer').value.trim();
   const prefix = document.getElementById('csAzurePrefix').value.trim();
   
-  if(!connStr || !container){
-    showToast('Please fill in Connection String and Container Name');
+  if(!accountName || !sasToken || !container){
+    showToast('Please fill in Account Name, SAS Token, and Container Name');
     return;
   }
   
   try{
     await apiFetch('/api/cloud/config/azure', {
       method: 'POST',
-      body: JSON.stringify({ connection_string: connStr, container_name: container, folder_prefix: prefix })
+      body: JSON.stringify({ account_name: accountName, sas_token: sasToken, container_name: container, folder_prefix: prefix })
     });
     showToast('Azure Blob Storage configured successfully!');
     checkCloudStatus();
@@ -1659,21 +1916,9 @@ async function uploadToCloudStorage(files){
     dropzone.classList.add('drag');
     
     try{
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('subfolder', '');
-      
-      const res = await fetch('/api/cloud/upload', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if(!res.ok){
-        const err = await res.text();
-        throw new Error(err);
-      }
-      
-      const result = await res.json();
+      if(!window.blobStorage) throw new Error('Blob storage not initialized');
+      const result = await window.blobStorage.uploadFile(file, state.editingId || 'dashboard_upload');
+      if(result.error) throw new Error(result.error);
       showToast(`Uploaded: ${file.name}`);
     }catch(e){
       showToast(`Failed to upload ${file.name}: ${e.message}`);
