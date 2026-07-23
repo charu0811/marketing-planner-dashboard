@@ -3,6 +3,7 @@ FastAPI backend for the Marketing Task Manager.
 Serves the React frontend and provides REST API for SQLite data.
 """
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -15,7 +16,13 @@ import cloud_storage as cs
 
 app = FastAPI(title="Wylth Marketing Task Manager")
 
-# Note: Blob storage is now frontend-only (no backend routes needed)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- Init ---
 db.init_db()
