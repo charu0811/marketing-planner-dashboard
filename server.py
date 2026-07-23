@@ -273,21 +273,6 @@ async def cloud_status():
     return cs.get_status()
 
 
-@app.post("/api/cloud/config/s3")
-async def cloud_config_s3(body: dict):
-    access_key_id = body.get("access_key_id", "").strip()
-    secret_access_key = body.get("secret_access_key", "").strip()
-    bucket_name = body.get("bucket_name", "").strip()
-    region = body.get("region", "us-east-1").strip()
-    folder_prefix = body.get("folder_prefix", "marketing-assets/")
-    
-    if not access_key_id or not secret_access_key or not bucket_name:
-        raise HTTPException(status_code=400, detail="access_key_id, secret_access_key, and bucket_name are required")
-    
-    result = cs.configure_s3(access_key_id, secret_access_key, bucket_name, region, folder_prefix)
-    return result
-
-
 @app.post("/api/cloud/config/azure")
 async def cloud_config_azure(body: dict):
     connection_string = body.get("connection_string", "").strip()

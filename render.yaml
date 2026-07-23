@@ -20,17 +20,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: CLOUD_STORAGE_PROVIDER
-        sync: false
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
-      - key: S3_BUCKET_NAME
-        sync: false
-      - key: AWS_REGION
-        sync: false
-      - key: S3_FOLDER_PREFIX
-        value: marketing-assets/
+        value: azure
       - key: AZURE_STORAGE_CONNECTION_STRING
         sync: false
       - key: AZURE_BLOB_CONTAINER

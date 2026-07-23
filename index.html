@@ -251,7 +251,7 @@
     </div>
     <button class="btn btn-primary" onclick="openTaskModal()">+ New task</button>
     <button class="chip-toggle" onclick="toggleOneDrivePanel()" title="OneDrive Assets">☁️ OneDrive</button>
-    <button class="chip-toggle" onclick="toggleCloudStoragePanel()" title="Cloud Storage (S3 / Azure)" style="background:linear-gradient(135deg,#FF9900,#0078D4);color:#fff;border-color:transparent;">☁️ S3 / Azure</button>
+    <button class="chip-toggle" onclick="toggleCloudStoragePanel()" title="Azure Blob Storage" style="background:#0078D4;color:#fff;border-color:transparent;">☁️ Azure Blob</button>
   </div>
 
   <!-- ONEDRIVE PANEL -->
@@ -274,56 +274,20 @@
     </div>
   </div>
 
-  <!-- CLOUD STORAGE PANEL (S3 / Azure Blob) -->
+  <!-- CLOUD STORAGE PANEL (Azure Blob) -->
   <div id="cloudStoragePanel" class="feat-panel" style="display:none;">
-    <div class="feat-panel-head" style="background:linear-gradient(135deg,rgba(255,153,0,0.08),rgba(0,120,212,0.08));">
-      <h3>Cloud <em style="background:linear-gradient(135deg,#FF9900,#0078D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Storage</em></h3>
+    <div class="feat-panel-head" style="background:linear-gradient(135deg,rgba(0,120,212,0.08),rgba(0,120,212,0.16));">
+      <h3>Azure <em style="color:#0078D4;">Blob</em></h3>
       <button class="btn-text" onclick="toggleCloudStoragePanel()">✕ Close</button>
     </div>
     <div class="feat-panel-body">
       <div id="csStatus" style="margin-bottom:14px;"></div>
-      
-      <!-- Provider Selector -->
-      <div id="csProviderSelect" style="display:none;margin-bottom:14px;">
-        <p style="font-size:12px;color:var(--ink-65);margin-bottom:10px;">Choose your cloud storage provider:</p>
-        <div style="display:flex;gap:10px;">
-          <button class="btn btn-ghost" onclick="showCloudConfig('s3')" style="flex:1;padding:16px;border-radius:10px;">
-            <div style="font-size:20px;margin-bottom:4px;">🪣</div>
-            <div style="font-size:13px;font-weight:600;color:#FF9900;">AWS S3</div>
-          </button>
-          <button class="btn btn-ghost" onclick="showCloudConfig('azure')" style="flex:1;padding:16px;border-radius:10px;">
-            <div style="font-size:20px;margin-bottom:4px;">☁️</div>
-            <div style="font-size:13px;font-weight:600;color:#0078D4;">Azure Blob</div>
-          </button>
-        </div>
-      </div>
-      
-      <!-- S3 Config -->
-      <div id="csS3Config" style="display:none;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-          <span style="font-size:16px;">🪣</span>
-          <span style="font-size:13px;font-weight:600;color:#FF9900;">AWS S3 Configuration</span>
-          <button class="btn-text" onclick="showCloudProviderSelect()" style="margin-left:auto;">← Back</button>
-        </div>
-        <div class="feat-add-form" style="flex-direction:column;gap:10px;">
-          <input type="text" id="csS3AccessKey" placeholder="Access Key ID" style="width:100%;">
-          <input type="password" id="csS3SecretKey" placeholder="Secret Access Key" style="width:100%;">
-          <div style="display:flex;gap:10px;">
-            <input type="text" id="csS3Bucket" placeholder="Bucket Name" style="flex:1;">
-            <input type="text" id="csS3Region" placeholder="Region (us-east-1)" style="width:120px;" value="us-east-1">
-          </div>
-          <input type="text" id="csS3Prefix" placeholder="Folder prefix (marketing-assets/)" style="width:100%;" value="marketing-assets/">
-          <button class="btn btn-primary" onclick="saveS3Config()" style="align-self:flex-start;">Connect S3</button>
-        </div>
-        <p style="font-size:10px;color:var(--ink-42);margin:8px 0 0;">Create an IAM user with S3 access. Ensure the bucket allows public read if you want direct preview links.</p>
-      </div>
-      
+
       <!-- Azure Config -->
       <div id="csAzureConfig" style="display:none;margin-bottom:14px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
           <span style="font-size:16px;">☁️</span>
           <span style="font-size:13px;font-weight:600;color:#0078D4;">Azure Blob Storage Configuration</span>
-          <button class="btn-text" onclick="showCloudProviderSelect()" style="margin-left:auto;">← Back</button>
         </div>
         <div class="feat-add-form" style="flex-direction:column;gap:10px;">
           <textarea id="csAzureConnStr" placeholder="Connection String (from Azure Portal → Storage Account → Access keys)" rows="2" style="width:100%;font-family:monospace;font-size:11px;"></textarea>
@@ -1577,7 +1541,7 @@ async function logoutOneDrive(){
   }catch(e){ showToast('Failed to disconnect'); }
 }
 
-/* ---------------- Cloud Storage (S3 / Azure Blob) ---------------- */
+/* ---------------- Cloud Storage (Azure Blob) ---------------- */
 let cloudState = { configured: false, provider: null };
 
 function toggleCloudStoragePanel(){
@@ -1603,25 +1567,20 @@ async function checkCloudStatus(){
 
 function renderCloudUI(status){
   const statusEl = document.getElementById('csStatus');
-  const providerSelect = document.getElementById('csProviderSelect');
-  const s3Config = document.getElementById('csS3Config');
   const azureConfig = document.getElementById('csAzureConfig');
   const uploadEl = document.getElementById('csUpload');
   const filesEl = document.getElementById('csFiles');
   
-  // Hide all sections first
-  providerSelect.style.display = 'none';
-  s3Config.style.display = 'none';
   azureConfig.style.display = 'none';
   uploadEl.style.display = 'none';
   filesEl.style.display = 'none';
 
   if(status.configured && status.connected){
-    const providerLabel = status.provider === 's3' ? 'AWS S3' : 'Azure Blob';
-    const providerColor = status.provider === 's3' ? '#FF9900' : '#0078D4';
-    const storageInfo = status.provider === 's3' ? status.bucket : status.container;
+    const providerLabel = 'Azure Blob';
+    const providerColor = '#0078D4';
+    const storageInfo = status.container;
     
-    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(255,153,0,0.08),rgba(0,120,212,0.08));border:1px solid ${providerColor}40;border-radius:8px;">
+    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(0,120,212,0.08),rgba(0,120,212,0.16));border:1px solid ${providerColor}40;border-radius:8px;">
       <span style="font-size:12px;color:${providerColor};font-weight:600;">✓ Connected to ${providerLabel}</span>
       <span style="font-size:11px;color:var(--ink-65);">${esc(storageInfo)}</span>
       <button class="btn-text" style="margin-left:auto;color:var(--rust);" onclick="clearCloudConfig()">Disconnect</button>
@@ -1636,50 +1595,11 @@ function renderCloudUI(status){
       <p style="font-size:11px;color:var(--ink-65);margin:6px 0 0;">${esc(status.error||'Unable to connect')}</p>
       <button class="btn-text" style="margin-top:8px;color:var(--rust);" onclick="clearCloudConfig()">Reset Configuration</button>
     </div>`;
-    providerSelect.style.display = 'block';
+    azureConfig.style.display = 'block';
   } else {
-    statusEl.innerHTML = '<div style="font-size:12px;color:var(--ink-65);padding:8px 0;">No cloud storage configured. Choose a provider below to get started.</div>';
-    providerSelect.style.display = 'block';
+    statusEl.innerHTML = '<div style="font-size:12px;color:var(--ink-65);padding:8px 0;">No Azure Blob Storage configured yet. Add your storage account details below.</div>';
+    azureConfig.style.display = 'block';
   }
-}
-
-function showCloudProviderSelect(){
-  document.getElementById('csS3Config').style.display = 'none';
-  document.getElementById('csAzureConfig').style.display = 'none';
-  document.getElementById('csProviderSelect').style.display = 'block';
-}
-
-function showCloudConfig(provider){
-  document.getElementById('csProviderSelect').style.display = 'none';
-  if(provider === 's3'){
-    document.getElementById('csS3Config').style.display = 'block';
-    document.getElementById('csAzureConfig').style.display = 'none';
-  } else {
-    document.getElementById('csS3Config').style.display = 'none';
-    document.getElementById('csAzureConfig').style.display = 'block';
-  }
-}
-
-async function saveS3Config(){
-  const accessKey = document.getElementById('csS3AccessKey').value.trim();
-  const secretKey = document.getElementById('csS3SecretKey').value.trim();
-  const bucket = document.getElementById('csS3Bucket').value.trim();
-  const region = document.getElementById('csS3Region').value.trim() || 'us-east-1';
-  const prefix = document.getElementById('csS3Prefix').value.trim();
-  
-  if(!accessKey || !secretKey || !bucket){
-    showToast('Please fill in Access Key, Secret Key, and Bucket Name');
-    return;
-  }
-  
-  try{
-    await apiFetch('/api/cloud/config/s3', {
-      method: 'POST',
-      body: JSON.stringify({ access_key_id: accessKey, secret_access_key: secretKey, bucket_name: bucket, region, folder_prefix: prefix })
-    });
-    showToast('S3 configured successfully!');
-    checkCloudStatus();
-  }catch(e){ showToast('Failed to configure S3: ' + e.message); }
 }
 
 async function saveAzureConfig(){
@@ -1775,8 +1695,7 @@ async function loadCloudFiles(){
     }
     
     const files = res.files || [];
-    const provider = res.provider;
-    const providerLabel = provider === 's3' ? 'S3' : 'Azure';
+    const providerLabel = 'Azure';
     
     if(!files.length){
       filesEl.innerHTML = '<div style="font-size:12px;color:var(--ink-42);text-align:center;padding:20px;">No files uploaded yet. Use the dropzone above or upload from task modal.</div>';
