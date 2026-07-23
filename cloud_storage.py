@@ -12,7 +12,7 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "cloud_storage_config.json
 
 # Default config structure
 DEFAULT_CONFIG = {
-    "provider": "",  # "s3" or "azure"
+    "provider": "",
     "s3": {
         "access_key_id": "",
         "secret_access_key": "",
@@ -106,7 +106,7 @@ def get_status() -> Dict[str, Any]:
         return {
             "configured": False,
             "provider": None,
-            "message": "No cloud storage configured. Choose S3 or Azure."
+            "message": "No Azure Blob Storage configured."
         }
     
     if provider == "s3":
@@ -180,7 +180,7 @@ def get_status() -> Dict[str, Any]:
     return {
         "configured": False,
         "provider": None,
-        "message": "Invalid provider configured."
+        "message": "Invalid cloud storage provider configured."
     }
 
 
