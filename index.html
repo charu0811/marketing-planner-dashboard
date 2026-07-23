@@ -290,13 +290,12 @@
           <span style="font-size:13px;font-weight:600;color:#0078D4;">Azure Blob Storage Configuration</span>
         </div>
         <div class="feat-add-form" style="flex-direction:column;gap:10px;">
-          <input type="text" id="csAzureAccountName" placeholder="Storage Account Name" style="width:100%;">
-          <textarea id="csAzureSasToken" placeholder="Container SAS token (without leading ?)" rows="2" style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+          <textarea id="csAzureConnStr" placeholder="Connection String (from Azure Portal → Storage Account → Access keys)" rows="2" style="width:100%;font-family:monospace;font-size:11px;"></textarea>
           <input type="text" id="csAzureContainer" placeholder="Container Name" style="width:100%;">
           <input type="text" id="csAzurePrefix" placeholder="Folder prefix (marketing-assets/)" style="width:100%;" value="marketing-assets/">
           <button class="btn btn-primary" onclick="saveAzureConfig()" style="align-self:flex-start;">Connect Azure</button>
         </div>
-        <p style="font-size:10px;color:var(--ink-42);margin:8px 0 0;">Use a scoped SAS token for this container with read/write/list/delete permissions and short expiry.</p>
+        <p style="font-size:10px;color:var(--ink-42);margin:8px 0 0;">This setup is saved in your browser for convenience. For persistent server-side config, use Render environment variables.</p>
       </div>
       
       <!-- Upload Section -->
@@ -469,9 +468,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
-<script src="blob/blob_storage.js"></script>
 <script>
 /* ---------------- constants ---------------- */
 const PLATFORMS_DEFAULT = ['Instagram','LinkedIn','YouTube','WhatsApp','Blog','Customer.io','Instantly','Twitter/X','Facebook'];
@@ -502,9 +498,14 @@ let state = {
   filters: { search:'', owner:'', status:'', approval:'', platforms:[], feature:'', featureOnly:false, showReleased:false }
 };
 
-/* ---------------- storage (Firebase RTDB + Azure Blob) ---------------- */
-const FIREBASE_MODE = true;
-const API = '';
+/* ---------------- storage (Render API) ---------------- */
+const FIREBASE_MODE = false;
+const API = (location.hostname.endsWith('web.app') || location.hostname.endsWith('firebaseapp.com'))
+  ? 'https://marketing-planner-dashboard.onrender.com'
+  : '';
+const ASSET_META_KEY = 'task_asset_meta_v1';
+const ASSET_BLOB_KEY = 'task_asset_blob_v1';
+const AZURE_UI_CONFIG_KEY = 'azure_ui_config_v1';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCj_Vo_JLcSFKYGXg9dG3W8o-lrm-Il-HQ",
@@ -777,7 +778,7 @@ async function loadAll(){
       owner: t.owner, status: t.status, approval: t.approval,
       comment: t.comment, link: t.link, priority: t.priority || '',
       feature_id: t.feature_id || '',
-      platforms: t.platforms || [], assets: [],
+      platforms: t.platforms || [], assets: getTaskAssets(t.id),
       createdAt: t.created_at, updatedAt: t.updated_at,
     }));
   }catch(e){ console.error('Load failed', e); state.tasks = []; }
@@ -820,6 +821,7 @@ async function saveTaskToServer(task, isNew){
 
 async function deleteTaskFromServer(taskId){
   await apiFetch('/api/tasks/' + encodeURIComponent(taskId), { method:'DELETE' });
+  clearTaskAssets(taskId);
 }
 
 async function updateStatusOnServer(taskId, newStatus){
@@ -828,10 +830,49 @@ async function updateStatusOnServer(taskId, newStatus){
   });
 }
 
-// Asset blobs stored in-memory only (files not persisted to server for now)
-async function storeAssetBlob(taskId, assetId, payload){}
-async function fetchAssetBlob(taskId, assetId){ return null; }
-async function deleteAssetBlob(taskId, assetId){}
+function _loadJson(key){
+  try{ return JSON.parse(localStorage.getItem(key) || '{}'); }catch(e){ return {}; }
+}
+function _saveJson(key, value){
+  localStorage.setItem(key, JSON.stringify(value));
+}
+function getTaskAssets(taskId){
+  const map = _loadJson(ASSET_META_KEY);
+  return taskId && Array.isArray(map[taskId]) ? map[taskId] : [];
+}
+function setTaskAssets(taskId, assets){
+  if(!taskId) return;
+  const map = _loadJson(ASSET_META_KEY);
+  map[taskId] = Array.isArray(assets) ? assets : [];
+  _saveJson(ASSET_META_KEY, map);
+}
+function clearTaskAssets(taskId){
+  if(!taskId) return;
+  const meta = _loadJson(ASSET_META_KEY);
+  delete meta[taskId];
+  _saveJson(ASSET_META_KEY, meta);
+  const blobs = _loadJson(ASSET_BLOB_KEY);
+  delete blobs[taskId];
+  _saveJson(ASSET_BLOB_KEY, blobs);
+}
+async function storeAssetBlob(taskId, assetId, payload){
+  if(!taskId || !assetId) return;
+  const blobs = _loadJson(ASSET_BLOB_KEY);
+  blobs[taskId] = blobs[taskId] || {};
+  blobs[taskId][assetId] = payload;
+  _saveJson(ASSET_BLOB_KEY, blobs);
+}
+async function fetchAssetBlob(taskId, assetId){
+  const blobs = _loadJson(ASSET_BLOB_KEY);
+  return blobs?.[taskId]?.[assetId] || null;
+}
+async function deleteAssetBlob(taskId, assetId){
+  const blobs = _loadJson(ASSET_BLOB_KEY);
+  if(blobs?.[taskId]?.[assetId]){
+    delete blobs[taskId][assetId];
+    _saveJson(ASSET_BLOB_KEY, blobs);
+  }
+}
 
 /* ---------------- helpers ---------------- */
 function uid(prefix){ return prefix+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
@@ -1273,6 +1314,11 @@ function renderAssetList(){
 }
 
 async function viewAsset(assetId){
+  const assetMeta = state.modalAssets.find(a => a.id === assetId);
+  if(assetMeta?.cloud_url){
+    previewCloudFile(assetMeta.cloud_url, assetMeta.type || 'application/octet-stream');
+    return;
+  }
   if(!state.editingId){ showToast('Save the task first'); return; }
   const blob = await fetchAssetBlob(state.editingId, assetId);
   if(!blob){ showToast('Could not load asset'); return; }
@@ -1285,8 +1331,13 @@ async function viewAsset(assetId){
 function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); document.getElementById('lightboxContent').innerHTML=''; }
 
 async function removeAsset(assetId){
+  const asset = state.modalAssets.find(a => a.id === assetId);
   state.modalAssets = state.modalAssets.filter(a=>a.id!==assetId);
   renderAssetList();
+  if(asset?.cloud_key){
+    try{ await apiFetch('/api/cloud/files/' + encodeURIComponent(asset.cloud_key), { method:'DELETE' }); }
+    catch(e){ console.warn('Cloud delete failed', e); }
+  }
   if(state.editingId){ await deleteAssetBlob(state.editingId, assetId); }
 }
 
@@ -1300,6 +1351,8 @@ function setupDropzone(){
 }
 async function handleFiles(files){
   const MAX = 3.5*1024*1024;
+  let cloudStatus = { configured:false };
+  try{ cloudStatus = await apiFetch('/api/cloud/status'); }catch(e){}
   for(const file of files){
     if(file.size > MAX){ showToast(`${file.name} is too large (max ~3.5MB)`); continue; }
     const dataUrl = await new Promise((res,rej)=>{
@@ -1310,6 +1363,20 @@ async function handleFiles(files){
     });
     const assetId = uid('a');
     const meta = { id: assetId, name: file.name, type: file.type||'application/octet-stream', size: file.size };
+
+    if(cloudStatus?.configured && cloudStatus?.provider === 'azure'){
+      try{
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('subfolder', state.editingId || 'unsorted');
+        const uploadRes = await fetch(API + '/api/cloud/upload', { method:'POST', body: formData });
+        const uploadData = await uploadRes.json();
+        if(uploadRes.ok && uploadData.success){
+          meta.cloud_url = uploadData.preview_url || uploadData.permanent_url || '';
+          meta.cloud_key = uploadData.blob_name || uploadData.key || '';
+        }
+      }catch(e){ console.warn('Cloud upload failed, keeping local copy', e); }
+    }
     
     // Upload to OneDrive if connected
     if(odState.authenticated){
@@ -1335,6 +1402,7 @@ async function handleFiles(files){
     }
   }
   document.getElementById('fileInput').value = '';
+  if(state.editingId) setTaskAssets(state.editingId, state.modalAssets);
   renderAssetList();
 }
 
@@ -1408,6 +1476,7 @@ async function saveTask(){
       const idx = state.tasks.findIndex(t=>t.id===id);
       state.tasks[idx] = payload;
     }
+    setTaskAssets(payload.id, payload.assets || []);
 
     if(payload.owner && !allOwners().some(o=>o.toLowerCase()===payload.owner.toLowerCase())){
       state.customOwners.push(payload.owner);
@@ -1805,6 +1874,7 @@ let cloudState = { configured: false, provider: null };
 function toggleCloudStoragePanel(){
   const panel = document.getElementById('cloudStoragePanel');
   if(panel.style.display==='none'){
+    prefillAzureConfig();
     panel.style.display='block';
     checkCloudStatus();
   } else {
@@ -1861,30 +1931,38 @@ function renderCloudUI(status){
 }
 
 async function saveAzureConfig(){
-  const accountName = document.getElementById('csAzureAccountName').value.trim();
-  const sasToken = document.getElementById('csAzureSasToken').value.trim();
+  const connStr = document.getElementById('csAzureConnStr').value.trim();
   const container = document.getElementById('csAzureContainer').value.trim();
   const prefix = document.getElementById('csAzurePrefix').value.trim();
   
-  if(!accountName || !sasToken || !container){
-    showToast('Please fill in Account Name, SAS Token, and Container Name');
+  if(!connStr || !container){
+    showToast('Please fill in Connection String and Container Name');
     return;
   }
   
   try{
     await apiFetch('/api/cloud/config/azure', {
       method: 'POST',
-      body: JSON.stringify({ account_name: accountName, sas_token: sasToken, container_name: container, folder_prefix: prefix })
+      body: JSON.stringify({ connection_string: connStr, container_name: container, folder_prefix: prefix })
     });
+    _saveJson(AZURE_UI_CONFIG_KEY, { connection_string: connStr, container_name: container, folder_prefix: prefix || 'marketing-assets/' });
     showToast('Azure Blob Storage configured successfully!');
     checkCloudStatus();
   }catch(e){ showToast('Failed to configure Azure: ' + e.message); }
+}
+
+function prefillAzureConfig(){
+  const cfg = _loadJson(AZURE_UI_CONFIG_KEY);
+  if(cfg.connection_string) document.getElementById('csAzureConnStr').value = cfg.connection_string;
+  if(cfg.container_name) document.getElementById('csAzureContainer').value = cfg.container_name;
+  if(cfg.folder_prefix) document.getElementById('csAzurePrefix').value = cfg.folder_prefix;
 }
 
 async function clearCloudConfig(){
   if(!confirm('Disconnect cloud storage?')) return;
   try{
     await apiFetch('/api/cloud/clear', { method:'POST' });
+    localStorage.removeItem(AZURE_UI_CONFIG_KEY);
     showToast('Cloud storage disconnected');
     checkCloudStatus();
   }catch(e){ showToast('Failed to disconnect'); }
